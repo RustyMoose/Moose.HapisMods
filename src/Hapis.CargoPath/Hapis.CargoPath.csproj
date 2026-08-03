@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <RootNamespace>Moose.Hapis.CargoPath</RootNamespace>
+        <ProjectGuid>{9A3F40C3-1C0B-4BEE-9986-8FF3B3EBF8D9}</ProjectGuid>
+
+        <TargetFramework>net48</TargetFramework>
+        <OutputType>Library</OutputType>
+        <Configurations>Debug;Release</Configurations>
+        <LangVersion>13</LangVersion>
+        <Nullable>enable</Nullable>
+
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <AssemblySearchPaths>..\..\dependencies\rust;$(AssemblySearchPaths)</AssemblySearchPaths>
+
+        <PackageId>Hapis.CargoPath</PackageId>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <OutputPath>bin\Release\</OutputPath>
+        <DefineConstants>TRACE</DefineConstants>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Optimize>true</Optimize>
+        <DebugType>embedded</DebugType>
+        <ErrorReport>prompt</ErrorReport>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+        <OutputPath>bin\Debug\</OutputPath>
+        <DefineConstants>TRACE;DEBUG</DefineConstants>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Optimize>true</Optimize>
+        <DebugType>embedded</DebugType>
+        <ErrorReport>prompt</ErrorReport>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="0Harmony" />
+        <Reference Include="Assembly-CSharp" />
+        <Reference Include="Assembly-CSharp-firstpass" />
+        <Reference Include="Facepunch.Console" />
+        <Reference Include="Facepunch.Network" />
+        <Reference Include="Facepunch.Sqlite" />
+        <Reference Include="Facepunch.System" />
+        <Reference Include="Facepunch.Unity" />
+        <Reference Include="Facepunch.UnityEngine" />
+        <Reference Include="mscorlib" />
+        <Reference Include="netstandard" />
+        <Reference Include="Newtonsoft.Json" />
+        <Reference Include="Rust.Data" />
+        <Reference Include="Rust.Global" />
+        <Reference Include="Rust.Harmony" />
+        <Reference Include="Rust.World" />
+        <Reference Include="System" />
+        <Reference Include="System.ComponentModel.Composition" />
+        <Reference Include="System.Core" />
+        <Reference Include="System.Web" />
+        <Reference Include="UnityEngine" />
+        <Reference Include="UnityEngine.CoreModule" />
+        <Reference Include="UnityEngine.PhysicsModule" />
+    </ItemGroup>
+    <PropertyGroup>
+        <PostBuildEvent>
+            xcopy "Moose.*.dll" "$(SolutionDir)artifacts\RustDedicated_Data\Managed\" /F /R /Y /I
+        </PostBuildEvent>
+    </PropertyGroup>
+</Project>
