@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Moose.Hapis.NPC.Models;
 
-public class SerializedNpcData
+public class SerializedNPCData
 {
-	public List<SerializedNpcSpawner> NpcSpawners = [];
+	public List<SerializedNPCSpawner> npcSpawners = [];
 }

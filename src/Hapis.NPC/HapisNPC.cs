@@ -20,9 +20,9 @@ public class HapisNPC
 
 	public Config Config = new();
 
-	public SerializedNpcSpawner? SerializedNpcSpawner;
+	public SerializedNPCSpawner? SerializedNpcSpawner;
 
-	private SerializedNpcData? _serializedNpcData;
+	private SerializedNPCData? _serializedNpcData;
 
 	private readonly List<Behaviours.NpcSpawner> _npcSpawnerList = [];
 
@@ -32,24 +32,19 @@ public class HapisNPC
 
 	public void InitializeHook()
 	{
-		if (Config == null)
-		{
-			ReloadConfig();
-		}
-		
 		if (_serializedNpcData == null)
 		{
 			var array = GetSerializedData("SerializedNPCData");
 			if (array != null)
 			{
-				_serializedNpcData = DeserializePlugin<SerializedNpcData>(array);
+				_serializedNpcData = DeserializePlugin<SerializedNPCData>(array);
 			}
 		}
 		
 		if (_serializedNpcData != null)
 		{
-			Debug.LogWarning("[Hapis.NPCSpawner] Loaded " + _serializedNpcData.NpcSpawners.Count + " NPC Spawners.");
-			foreach (var npcSpawner in _serializedNpcData.NpcSpawners)
+			Debug.LogWarning("[Hapis.NPCSpawner] Loaded " + _serializedNpcData.npcSpawners.Count + " NPC Spawners.");
+			foreach (var npcSpawner in _serializedNpcData.npcSpawners)
 			{
 				var nPCSpawner = new GameObject("NPCSpawner").AddComponent<Behaviours.NpcSpawner>();
 				nPCSpawner.Initialize(npcSpawner);
@@ -203,7 +198,7 @@ public class HapisNPC
 					}
 					if (npcs.Respawning)
 					{
-						if (npcs.Delay <= UnityEngine.Time.time && !AnyPlayersNearby(npcs.serializedNPCSpawner.Position, Config.SpawnBlockingDistance))
+						if (npcs.Delay <= UnityEngine.Time.time && !AnyPlayersNearby(npcs.serializedNPCSpawner.position, Config.SpawnBlockingDistance))
 						{
 							npcs.SpawnNPC();
 						}
@@ -212,7 +207,7 @@ public class HapisNPC
 					if ((npcs.BOT == null || npcs.BOT.IsDestroyed) && !npcs.Respawning)
 					{
 						npcs.Respawning = true;
-						npcs.Delay = UnityEngine.Time.time + UnityEngine.Random.Range(npcs.serializedNPCSpawner.RespawnMin, npcs.serializedNPCSpawner.RespawnMax);
+						npcs.Delay = UnityEngine.Time.time + UnityEngine.Random.Range(npcs.serializedNPCSpawner.respawnMin, npcs.serializedNPCSpawner.respawnMax);
 						continue;
 					}
 					if (Config.UseRustEditNPCLogic || npcs.npctype == NpcType.Scarecrow || npcs.npctype == NpcType.Murderer)
@@ -238,7 +233,7 @@ public class HapisNPC
 							if (Vector3.Distance((npcs.target).transform.position, scarecrowNpc.transform.position) >= scarecrowNpc.Brain.SenseRange)
 							{
 								scarecrowNpc.Brain.Events.Memory.Entity.Set(scarecrowNpc, 0);
-								scarecrowNpc.Brain.Navigator.SetDestination(npcs.serializedNPCSpawner.Position, (BaseNavigator.NavigationSpeed)2);
+								scarecrowNpc.Brain.Navigator.SetDestination(npcs.serializedNPCSpawner.position, (BaseNavigator.NavigationSpeed)2);
 								npcs.target = null;
 								continue;
 							}
@@ -299,7 +294,7 @@ public class HapisNPC
 							}
 							if (!val3.Brain.Navigator.Moving)
 							{
-								val3.Brain.Navigator.SetDestination(npcs.serializedNPCSpawner.Position, (BaseNavigator.NavigationSpeed)3);
+								val3.Brain.Navigator.SetDestination(npcs.serializedNPCSpawner.position, (BaseNavigator.NavigationSpeed)3);
 							}
 						}
 						else
@@ -346,7 +341,7 @@ public class HapisNPC
 		}
 		if (!(val == null) && !val.Moving && !npcs.stationary)
 		{
-			Vector3 val2 = npcs.serializedNPCSpawner.Position;
+			Vector3 val2 = npcs.serializedNPCSpawner.position;
 			var num = npcs.RoamDistance / 2f;
 			Vector2 val3 = Vector3.zero;
 			val3 = UnityEngine.Random.insideUnitCircle * num;
@@ -524,62 +519,8 @@ public class HapisNPC
 		return null;
 	}
 
-	private void ReloadConfig()
-	{
-		var path = Path.Combine("HarmonyConfig", "Hapis.NPCSpawner.xml");
-		if (!Directory.Exists("HarmonyConfig"))
-		{
-			Directory.CreateDirectory("HarmonyConfig");
-		}
-		if (!File.Exists(path))
-		{
-			if (Config == null)
-			{
-				Config = new Config();
-				Debug.LogWarning("[Hapis.NPCSpawner] Created New Config File");
-			}
-			File.WriteAllBytes(path, SerializePlugin(Config));
-			return;
-		}
-		try
-		{
-			Config = DeserializePlugin<Config>(File.ReadAllBytes(path));
-			Debug.LogWarning("[Hapis.NPCSpawner] Loaded Config File!");
-			return;
-		}
-		catch
-		{
-			// ignored
-		}
-		Config = new Config();
-		Debug.LogWarning("[Hapis.NPCSpawner] Reset Config File");
-		File.WriteAllBytes(path, SerializePlugin(Config));
-	}
-
-	private static byte[]? SerializePlugin<T>(T stream)
-	{
-		if (stream == null)
-		{
-			return null;
-		}
-		
-		try
-		{
-			using var memoryStream = new MemoryStream();
-			new XmlSerializer(typeof(T)).Serialize(memoryStream, stream);
-			return memoryStream.ToArray();
-		}
-		catch (Exception ex)
-		{
-			Debug.Log(ex.Message + "\n" + ex.StackTrace);
-			return null;
-		}
-	}
-
 	private static T? DeserializePlugin<T>(byte[] bytes)
 	{
-		T? result;
-		
 		try
 		{
 			using var stream = new MemoryStream(bytes);
@@ -588,9 +529,7 @@ public class HapisNPC
 		catch (Exception ex)
 		{
 			Debug.Log(ex.Message + " " + ex.StackTrace);
-			result = default;
+			return default;
 		}
-		
-		return result;
 	}
 }

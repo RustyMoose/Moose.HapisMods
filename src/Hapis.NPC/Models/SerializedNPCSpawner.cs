@@ -2,15 +2,15 @@ using ProtoBuf;
 
 namespace Moose.Hapis.NPC.Models;
 
-public class SerializedNpcSpawner
+public class SerializedNPCSpawner
 {
-	public int NpcType;
+	public int npcType;
 
-	public int RespawnMin;
+	public int respawnMin;
 
-	public int RespawnMax;
+	public int respawnMax;
 
-	public VectorData Position;
+	public VectorData position;
 
-	public string Category;
+	public string category;
 }

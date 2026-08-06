@@ -11,7 +11,7 @@ namespace Moose.Hapis.NPC.Behaviours;
 
 public class NpcSpawner : MonoBehaviour
 {
-	public SerializedNpcSpawner serializedNPCSpawner;
+	public SerializedNPCSpawner serializedNPCSpawner;
 
 	public BaseEntity BOT;
 
@@ -44,17 +44,17 @@ public class NpcSpawner : MonoBehaviour
 		{ NpcType.Scarecrow, "assets/prefabs/npc/scarecrow/scarecrow.prefab" }
 	};
 
-	public void Initialize(SerializedNpcSpawner serializedNpcSpawner)
+	public void Initialize(SerializedNPCSpawner serializedNpcSpawner)
 	{
 		serializedNPCSpawner = serializedNpcSpawner;
-		npctype = (NpcType)serializedNPCSpawner.NpcType;
+		npctype = (NpcType)serializedNPCSpawner.npcType;
 		prefab = TypeToPrefabMap[npctype];
-		OldPos = serializedNPCSpawner.Position;
+		OldPos = serializedNPCSpawner.position;
 	}
 
 	public void SpawnNPC()
 	{
-		Vector3 position = serializedNPCSpawner.Position;
+		Vector3 position = serializedNPCSpawner.position;
 		stationary = !HapisNPC.IsOnGround(ref position, out var areaMask);
 		
 		ScientistNPC val = null;
