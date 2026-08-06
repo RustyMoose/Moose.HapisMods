@@ -57,7 +57,7 @@
     </ItemGroup>
     <PropertyGroup>
         <PostBuildEvent>
-            xcopy "Hapis.*.dll" "$(SolutionDir)artifacts\RustDedicated_Data\Managed\" /F /R /Y /I
+            xcopy "Hapis.*.dll" "$(SolutionDir)artifacts\" /F /R /Y /I
         </PostBuildEvent>
     </PropertyGroup>
 </Project>
