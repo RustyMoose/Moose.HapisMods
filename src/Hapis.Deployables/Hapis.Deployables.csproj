@@ -8,10 +8,6 @@
         <Configurations>Debug;Release</Configurations>
         <LangVersion>13</LangVersion>
         <Nullable>enable</Nullable>
-
-        <AssemblySearchPaths>..\..\dependencies\rust;$(AssemblySearchPaths)</AssemblySearchPaths>
-
-        <PackageId>Hapis.Deployables</PackageId>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
         <OutputPath>bin\Release\</OutputPath>
@@ -56,15 +52,13 @@
         <Reference Include="System.Core" />
         <Reference Include="System.Web" />
         <Reference Include="UnityEngine" />
-        <Reference Include="UnityEngine.AIModule">
-          <HintPath>..\..\dependencies\rust\UnityEngine.AIModule.dll</HintPath>
-        </Reference>
+        <Reference Include="UnityEngine.AIModule" />
         <Reference Include="UnityEngine.CoreModule" />
         <Reference Include="UnityEngine.PhysicsModule" />
     </ItemGroup>
     <PropertyGroup>
         <PostBuildEvent>
-            xcopy "Moose.*.dll" "$(SolutionDir)artifacts\RustDedicated_Data\Managed\" /F /R /Y /I
+            xcopy "Hapis.*.dll" "$(SolutionDir)artifacts\RustDedicated_Data\Managed\" /F /R /Y /I
         </PostBuildEvent>
     </PropertyGroup>
 </Project>

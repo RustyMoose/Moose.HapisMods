@@ -8,12 +8,7 @@
         <Configurations>Debug;Release</Configurations>
         <LangVersion>13</LangVersion>
         <Nullable>enable</Nullable>
-
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
-        <AssemblySearchPaths>..\..\dependencies\rust;$(AssemblySearchPaths)</AssemblySearchPaths>
-
-        <PackageId>Hapis.CargoPath</PackageId>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
         <OutputPath>bin\Release\</OutputPath>
@@ -63,7 +58,7 @@
     </ItemGroup>
     <PropertyGroup>
         <PostBuildEvent>
-            xcopy "Moose.*.dll" "$(SolutionDir)artifacts\RustDedicated_Data\Managed\" /F /R /Y /I
+            xcopy "Hapis.*.dll" "$(SolutionDir)artifacts\RustDedicated_Data\Managed\" /F /R /Y /I
         </PostBuildEvent>
     </PropertyGroup>
 </Project>
