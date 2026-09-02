@@ -15,7 +15,10 @@ internal class DoorManipulator_DoAction
         {
             if (Vector3.Distance(CoalMech.transform.position, __instance.transform.position) <= 30)
             {
-                CoalMech.SetFlag(BaseEntity.Flags.Reserved8, __instance.IsPowered());
+                using (var scope = CoalMech.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+                {
+                    scope.Set(BaseEntity.Flags.Reserved8, __instance.IsPowered());
+                }
                 
                 return false;
             }

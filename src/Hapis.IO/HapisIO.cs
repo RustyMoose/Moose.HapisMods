@@ -299,9 +299,13 @@ public class HapisIO
 								
 								cardReader.accessLevel = entity.accessLevel;
 								cardReader.accessDuration = entity.timerLength;
-								cardReader.SetFlag(BaseEntity.Flags.Reserved1, entity.accessLevel == 1);
-								cardReader.SetFlag(BaseEntity.Flags.Reserved2, entity.accessLevel == 2);
-								cardReader.SetFlag(BaseEntity.Flags.Reserved3, entity.accessLevel == 3);
+								
+								using (var scope = cardReader.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+								{
+									scope.Set(BaseEntity.Flags.Reserved1, entity.accessLevel == 1);
+									scope.Set(BaseEntity.Flags.Reserved2, entity.accessLevel == 2);
+									scope.Set(BaseEntity.Flags.Reserved3, entity.accessLevel == 3);
+								}
 							}
 
 							break;
@@ -333,7 +337,10 @@ public class HapisIO
 							electricalBranch.branchAmount = entity.branchAmount;
 							break;
 						case PowerCounter powerCounter:
-							powerCounter.SetFlag(BaseEntity.Flags.Reserved2, entity.counterPassthrough);
+							using (var scope = powerCounter.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+							{
+								scope.Set(BaseEntity.Flags.Reserved2, entity.counterPassthrough);
+							}
 							powerCounter.SetCounterNumber(0);
 							powerCounter.targetCounterNumber = entity.targetCounterNumber;
 							break;
@@ -538,12 +545,18 @@ public class HapisIO
 			
 			newElevator.RefreshEntityLinks();
 			newElevator.OnDeployed(null, null, null);
-			newElevator.SetFlag(BaseEntity.Flags.Reserved2, true, false, false);
+			using (var scope = newElevator.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+			{
+				scope.Set(BaseEntity.Flags.Reserved2, true);
+			}
 			
 			elevator = newElevator;
 		}
 		
-		elevator.SetFlag(BaseEntity.Flags.Reserved1, true, false, false);
+		using (var scope = elevator.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+		{
+			scope.Set(BaseEntity.Flags.Reserved1, true);
+		}
 		
 		CreateLift(elevator);
 	}

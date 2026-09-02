@@ -751,7 +751,10 @@ public class HapisDeployables
 		if (Config.LockedCrates.Contains(lootContainer.PrefabName))
 		{
 			lootContainer.InitializeHealth(Config.LockedCratesHealth, Config.LockedCratesHealth);
-			lootContainer.SetFlag(BaseEntity.Flags.Locked, b: true);
+			using (var scope = lootContainer.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+			{
+				scope.Set(BaseEntity.Flags.Locked, true);
+			}
 		}
 		
 		foreach (var item in _customLootContainer)
@@ -903,7 +906,10 @@ public class HapisDeployables
 			{
 				list[0]._limitedNetworking = true;
 			}
-			door.SetFlag(BaseEntity.Flags.Reserved11, b: true);
+			using (var scope = door.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+			{
+				scope.Set(BaseEntity.Flags.Reserved11, true);
+			}
 		}
 	}
 
@@ -926,8 +932,11 @@ public class HapisDeployables
 				list[0]._limitedNetworking = true;
 			}
 			
-			door.SetFlag(BaseEntity.Flags.Locked, b: true);
-			door.SetFlag(BaseEntity.Flags.Reserved11, b: true);
+			using (var scope = door.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+			{
+				scope.Set(BaseEntity.Flags.Locked, true);
+				scope.Set(BaseEntity.Flags.Reserved11, true);
+			}
 		}
 	}
 
@@ -1007,7 +1016,10 @@ public class HapisDeployables
 								baseEntity.SendNetworkUpdateImmediate();
 								if (baseEntity is SprayCanSpray_Decal)
 								{
-									baseEntity.SetFlag(BaseEntity.Flags.Placeholder, b: true);
+									using (var scope = baseEntity.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+									{
+										scope.Set(BaseEntity.Flags.Placeholder, true);
+									}
 								}
 							}
 							catch
@@ -1023,8 +1035,11 @@ public class HapisDeployables
 								item.info.itemType = ItemContainer.ContentsType.Liquid;
 								if (item.MoveToContainer((baseEntity as PaddlingPool).inventory))
 								{
-									baseEntity.SetFlag(BaseEntity.Flags.Reserved4, b: true);
-									baseEntity.SetFlag(BaseEntity.Flags.Locked, b: true);
+									using (var scope = baseEntity.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+									{
+										scope.Set(BaseEntity.Flags.Locked, true);
+										scope.Set(BaseEntity.Flags.Reserved4, true);
+									}
 								}
 							}
 						}
@@ -1035,12 +1050,18 @@ public class HapisDeployables
 							{
 								if (Config.DisableDamageToVehicles)
 								{
-									baseCombatEntity.SetFlag(BaseEntity.Flags.Placeholder, b: true);
+									using (var scope = baseCombatEntity.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+									{
+										scope.Set(BaseEntity.Flags.Placeholder, true);
+									}
 								}
 							}
 							else
 							{
-								baseCombatEntity.SetFlag(BaseEntity.Flags.Placeholder, b: true);
+								using (var scope = baseCombatEntity.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+								{
+									scope.Set(BaseEntity.Flags.Placeholder, true);
+								}
 							}
 							baseCombatEntity.pickup.enabled = false;
 							if (baseCombatEntity.Health() < baseCombatEntity.MaxHealth())
@@ -1089,7 +1110,7 @@ public class HapisDeployables
 								baseEntity.Spawn();
 								if (Config.LogManagedSpawns)
 								{
-									Debug.LogWarning("[Hapis.Deployables] Spawned " + baseEntity.ToString() + "@" + baseEntity.transform.position.ToString());
+									Debug.LogWarning("[Hapis.Deployables] Spawned " + baseEntity + "@" + baseEntity.transform.position);
 								}
 								if (baseEntity is StabilityEntity)
 								{

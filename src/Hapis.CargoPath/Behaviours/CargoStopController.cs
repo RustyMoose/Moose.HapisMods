@@ -104,7 +104,10 @@ public class CargoStopController : MonoBehaviour
 		_cargoShip.currentThrottle = _preStopThrottle;
 		_cargoShip.currentTurnSpeed = _preStopTurnSpeed;
 		
-		_cargoShip?.SetFlag(CargoShip.HasDocked, true);
+		using (var scope = _cargoShip.StartSetFlags(BaseEntity.FlagsUpdateMode.SendNetworkUpdateImmediate))
+		{
+			scope.Set(CargoShip.HasDocked, true);
+		}
 		Destroy(this);
 	}
 }

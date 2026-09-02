@@ -478,7 +478,7 @@ public class HapisNPC
 				var val = (Chainsaw)(heldEntity is Chainsaw ? heldEntity : null);
 				if (val != null)
 				{
-					val.SetFlag((BaseEntity.Flags)2, true);
+					val.SetFlagLocal((BaseEntity.Flags)2, true);
 					val.SendNetworkUpdateImmediate();
 				}
 			}
