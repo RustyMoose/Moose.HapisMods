@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using Moose.HapisExtra;
 using UnityEngine;
 
 namespace Moose.Hapis.Extra;
@@ -19,10 +18,10 @@ public static class PumpFiller
 	private static readonly HashSet<string> Warned = [];
 	private static readonly List<BaseNetworkable> Pumps = [];
 	private static readonly Dictionary<BaseNetworkable, float> Carry = new();
-	private static float _nextRescan = 0f;
+	private static float _nextRescan;
 	private static float _trickleStart = -1f;
 	private static float _lastTrickle = -1f;
-	private static float _nextStatusLog = 0f;
+	private static float _nextStatusLog;
 	private static int _lastLoggedCount = -1;
 	private static bool _ioLogged;
 	private static bool _startFillDone;
@@ -50,7 +49,7 @@ public static class PumpFiller
 			return false;
 		}
 
-		var words = HapisExtraMod.Config.PumpPrefabKeywords.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+		var words = HapisExtraMod.Config.PumpPrefabKeywords.Split([','], StringSplitOptions.RemoveEmptyEntries);
 		if (words.Length == 0)
 		{
 			return false;
@@ -140,14 +139,14 @@ public static class PumpFiller
 				}
 				try
 				{
-					var c = fields[i].GetValue(e) as ItemContainer;
-					if (c != null)
+					if (fields[i].GetValue(e) is ItemContainer container)
 					{
-						return c;
+						return container;
 					}
 				}
 				catch (Exception)
 				{
+					//
 				}
 			}
 		}
@@ -286,7 +285,7 @@ public static class PumpFiller
 		}
 	}
 
-	public static int GetAmount(BaseNetworkable pump)
+	private static int GetAmount(BaseNetworkable pump)
 	{
 		var c = FindContainer(pump);
 		if (c == null || c.itemList == null || c.itemList.Count == 0)
@@ -296,7 +295,7 @@ public static class PumpFiller
 		return c.itemList[0].amount;
 	}
 
-	public static bool SetAmount(BaseNetworkable pump, int amount)
+	private static bool SetAmount(BaseNetworkable pump, int amount)
 	{
 		return SetAmount(pump, amount, null);
 	}
@@ -320,7 +319,7 @@ public static class PumpFiller
 		}
 
 		var shortname = !string.IsNullOrEmpty(shortnameOverride) ? shortnameOverride : LiquidShortname(pump);
-		var item = ItemManager.CreateByName(shortname, 1);
+		var item = ItemManager.CreateByName(shortname);
 		if (item == null)
 		{
 			Warn("noitem-" + shortname, "item '" + shortname + "' not found. Set the ItemShortname in the XML.");
@@ -333,13 +332,13 @@ public static class PumpFiller
 		if (!moved)
 		{
 			// the inventory is locked for players; unlock for this one move, then lock it again
-			Refl.Call(c, "SetLocked", false);
+			c.SetLocked(false);
 			moved = item.MoveToContainer(c);
 			var lockObj = GetField(pump, "lockInventory");
-			var wasLocked = lockObj is bool locked && locked;
+			var wasLocked = lockObj is bool locked and true;
 			if (wasLocked)
 			{
-				Refl.Call(c, "SetLocked", true);
+				c.SetLocked(true);
 			}
 		}
 

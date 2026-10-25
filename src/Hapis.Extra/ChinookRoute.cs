@@ -1,8 +1,7 @@
 using System;
-using Moose.Hapis.Extra;
 using UnityEngine;
 
-namespace Moose.HapisExtra;
+namespace Moose.Hapis.Extra;
 
 /// <summary>
 /// The flight route: Approach -> Drop -> Orbit -> Egress -> despawn.
@@ -68,8 +67,7 @@ public class ChinookRoute : MonoBehaviour
 
 	private void MoveTo(Vector3 target)
 	{
-		Refl.Call(_ent, "SetMoveTarget", target);
-		_ent.SetMove
+		_ent?.SetMoveTarget(target);
 	}
 
 	private void Enter(State s)
@@ -77,7 +75,7 @@ public class ChinookRoute : MonoBehaviour
 		_state = s;
 		_stateStart = Time.time;
 		var hover = (s == State.Drop) ? _cfg.DropClearance - 5f : _cfg.CruiseClearance - 10f;
-		Refl.Call(_ent, "SetMinHoverHeight", hover);
+		_ent?.SetMinHoverHeight(hover);
 		HapisExtraMod.Log("State -> " + s);
 	}
 
@@ -156,21 +154,21 @@ public class ChinookRoute : MonoBehaviour
 
 		if (!_doorOpened)
 		{
-			Refl.Call(_ent, "SetDropDoorOpen", true);
+			_ent?.SetDropDoorOpen(true);
 			_doorOpened = true;
 		}
 
-		if (!_crateDropped && elapsed >= 5f && (dist < 35f || elapsed > 40f))
+		if (!_crateDropped && _ent != null && elapsed >= 5f && (dist < 35f || elapsed > 40f))
 		{
-			Refl.SetField(_ent, "numCrates", 1);
-			Refl.Call(_ent, "DropCrate");
+			_ent.numCrates = 1;
+			_ent.DropCrate();
 			_crateDropped = true;
 			HapisExtraMod.Log("Crate drop called.");
 		}
 
 		if (_crateDropped && elapsed >= 10f)
 		{
-			Refl.Call(_ent, "SetDropDoorOpen", false);
+			_ent?.SetDropDoorOpen(false);
 			Enter(State.Orbit);
 		}
 	}
