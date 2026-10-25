@@ -49,7 +49,7 @@ public static class PumpFiller
 			return false;
 		}
 
-		var words = HapisExtraMod.Config.PumpPrefabKeywords.Split([','], StringSplitOptions.RemoveEmptyEntries);
+		var words = HapisExtraConstants.PumpPrefabKeywords.Split([','], StringSplitOptions.RemoveEmptyEntries);
 		if (words.Length == 0)
 		{
 			return false;
@@ -91,17 +91,11 @@ public static class PumpFiller
 		if (Pumps.Count != _lastLoggedCount)
 		{
 			_lastLoggedCount = Pumps.Count;
-			HapisExtraMod.Log("PumpFill: found " + Pumps.Count + " matching pump(s) for '" + HapisExtraMod.Config.PumpPrefabKeywords + "'.");
+			HapisExtraMod.Log("PumpFill: found " + Pumps.Count + " matching pump(s) for '" + HapisExtraConstants.PumpPrefabKeywords + "'.");
 			for (var i = 0; i < Pumps.Count; i++)
 			{
 				HapisExtraMod.Log("PumpFill:   pump " + i + " at " + Pumps[i].transform.position);
 			}
-		}
-
-		if (HapisExtraMod.Config.LogPumpIO && !_ioLogged && Pumps.Count > 0)
-		{
-			_ioLogged = true;
-			PumpIODump.Run(Pumps);
 		}
 	}
 
@@ -155,12 +149,6 @@ public static class PumpFiller
 
 	private static string LiquidShortname(BaseNetworkable pump)
 	{
-		var configured = HapisExtraMod.Config.PumpItemShortname;
-		if (!string.IsNullOrEmpty(configured))
-		{
-			return configured;
-		}
-
 		var def = GetField(pump, "defaultLiquid") as ItemDefinition;
 		if (def != null && !string.IsNullOrEmpty(def.shortname))
 		{
@@ -176,7 +164,6 @@ public static class PumpFiller
 		try
 		{
 			var now = Time.realtimeSinceStartup;
-			var cfg = HapisExtraMod.Config;
 
 			// no pumps known yet: look again about every 30 seconds
 			if (Pumps.Count == 0)
@@ -205,20 +192,20 @@ public static class PumpFiller
 					{
 						continue;
 					}
-					if (GetAmount(pump) >= cfg.PumpStartAmount)
+					if (GetAmount(pump) >= HapisExtraConstants.PumpStartAmount)
 					{
 						continue;
 					}
-					if (SetAmount(pump, cfg.PumpStartAmount))
+					if (SetAmount(pump, HapisExtraConstants.PumpStartAmount))
 					{
 						raised++;
 					}
 				}
 
-				_trickleStart = now + Mathf.Max(cfg.PumpTrickleDelayMinutes, 0f) * 60f;
+				_trickleStart = now + Mathf.Max(HapisExtraConstants.PumpTrickleDelayMinutes, 0f) * 60f;
 				_lastTrickle = _trickleStart;
 				_nextStatusLog = _trickleStart;
-				HapisExtraMod.Log("PumpFill: start fill done (" + raised + " of " + Pumps.Count + " pump(s) raised to " + cfg.PumpStartAmount + "). Slow refill begins in " + cfg.PumpTrickleDelayMinutes + " minute(s).");
+				HapisExtraMod.Log("PumpFill: start fill done (" + raised + " of " + Pumps.Count + " pump(s) raised to " + HapisExtraConstants.PumpStartAmount + "). Slow refill begins in " + HapisExtraConstants.PumpTrickleDelayMinutes + " minute(s).");
 				return;
 			}
 
@@ -227,12 +214,8 @@ public static class PumpFiller
 			{
 				return;
 			}
-			if (cfg.PumpTrickleHours <= 0f || cfg.PumpMaxAmount <= cfg.PumpStartAmount)
-			{
-				return;
-			}
 
-			var ratePerSecond = (float)(cfg.PumpMaxAmount - cfg.PumpStartAmount) / (cfg.PumpTrickleHours * 3600f);
+			const float ratePerSecond = (HapisExtraConstants.PumpMaxAmount - HapisExtraConstants.PumpStartAmount) / (HapisExtraConstants.PumpTrickleHours * 3600f);
 			var dt = now - _lastTrickle;
 			_lastTrickle = now;
 
@@ -245,7 +228,7 @@ public static class PumpFiller
 				}
 
 				var current = GetAmount(pump);
-				if (current >= cfg.PumpMaxAmount)
+				if (current >= HapisExtraConstants.PumpMaxAmount)
 				{
 					Carry.Remove(pump);
 					continue;
@@ -258,7 +241,7 @@ public static class PumpFiller
 				if (whole >= 1)
 				{
 					c -= whole;
-					SetAmount(pump, Mathf.Min(cfg.PumpMaxAmount, current + whole));
+					SetAmount(pump, Mathf.Min(HapisExtraConstants.PumpMaxAmount, current + whole));
 				}
 				Carry[pump] = c;
 			}
@@ -276,7 +259,7 @@ public static class PumpFiller
 					}
 					line += (line.Length > 0 ? ", " : "") + GetAmount(Pumps[i]);
 				}
-				HapisExtraMod.Log("PumpFill: pump amounts now: " + line + " (max " + cfg.PumpMaxAmount + ").");
+				HapisExtraMod.Log("PumpFill: pump amounts now: " + line + " (max " + HapisExtraConstants.PumpMaxAmount + ").");
 			}
 		}
 		catch (Exception e)

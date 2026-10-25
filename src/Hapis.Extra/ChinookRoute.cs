@@ -11,7 +11,6 @@ public class ChinookRoute : MonoBehaviour
 	private enum State { Approach, Drop, Orbit, Egress }
 
 	private CH47HelicopterAIController? _ent;
-	private HapisExtraConfig _cfg = null!;
 	private Vector3 _dropPos;
 	private Vector3 _center = Vector3.zero;
 	private float _half;
@@ -22,10 +21,9 @@ public class ChinookRoute : MonoBehaviour
 	private bool _doorOpened;
 	private bool _crateDropped;
 
-	public void Init(CH47HelicopterAIController e, HapisExtraConfig c, Vector3 drop)
+	public void Init(CH47HelicopterAIController e, Vector3 drop)
 	{
 		_ent = e;
-		_cfg = c;
 		_dropPos = drop;
 		_half = (float)World.Size * 0.5f;
 		Enter(State.Approach);
@@ -74,7 +72,7 @@ public class ChinookRoute : MonoBehaviour
 	{
 		_state = s;
 		_stateStart = Time.time;
-		var hover = (s == State.Drop) ? _cfg.DropClearance - 5f : _cfg.CruiseClearance - 10f;
+		var hover = (s == State.Drop) ? HapisExtraConstants.DropClearance - 5f : HapisExtraConstants.CruiseClearance - 10f;
 		_ent?.SetMinHoverHeight(hover);
 		HapisExtraMod.Log("State -> " + s);
 	}
@@ -95,7 +93,7 @@ public class ChinookRoute : MonoBehaviour
 		}
 		_nextTick = Time.time + 0.25f;
 
-		if (_cfg.Invulnerable && _ent.health < _ent.MaxHealth())
+		if (HapisExtraConstants.Invulnerable && _ent.health < _ent.MaxHealth())
 		{
 			_ent.SetHealth(_ent.MaxHealth());
 		}
@@ -135,11 +133,11 @@ public class ChinookRoute : MonoBehaviour
 		float y;
 		if (dist < 120f)
 		{
-			y = Mathf.Max(_dropPos.y, Ground(_dropPos)) + _cfg.DropClearance;
+			y = Mathf.Max(_dropPos.y, Ground(_dropPos)) + HapisExtraConstants.DropClearance;
 		}
 		else
 		{
-			y = PathGround(pos, wp) + _cfg.CruiseClearance;
+			y = PathGround(pos, wp) + HapisExtraConstants.CruiseClearance;
 		}
 		wp.y = y;
 		MoveTo(wp);
@@ -147,7 +145,7 @@ public class ChinookRoute : MonoBehaviour
 
 	private void TickDrop(Vector3 pos, float elapsed)
 	{
-		var hold = new Vector3(_dropPos.x, Mathf.Max(_dropPos.y, Ground(_dropPos)) + _cfg.DropClearance, _dropPos.z);
+		var hold = new Vector3(_dropPos.x, Mathf.Max(_dropPos.y, Ground(_dropPos)) + HapisExtraConstants.DropClearance, _dropPos.z);
 		MoveTo(hold);
 
 		var dist = Flat(_dropPos - pos).magnitude;
@@ -175,7 +173,7 @@ public class ChinookRoute : MonoBehaviour
 
 	private void TickOrbit(Vector3 pos, float elapsed)
 	{
-		if (elapsed >= _cfg.OrbitSeconds)
+		if (elapsed >= HapisExtraConstants.OrbitSeconds)
 		{
 			Enter(State.Egress);
 			return;
@@ -183,8 +181,8 @@ public class ChinookRoute : MonoBehaviour
 
 		var rel = Flat(pos - _dropPos);
 		var ang = Mathf.Atan2(rel.z, rel.x) + 35f * Mathf.Deg2Rad;
-		var target = _dropPos + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * _cfg.OrbitRadius;
-		target.y = PathGround(pos, target) + _cfg.CruiseClearance;
+		var target = _dropPos + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * HapisExtraConstants.OrbitRadius;
+		target.y = PathGround(pos, target) + HapisExtraConstants.CruiseClearance;
 		MoveTo(target);
 	}
 
@@ -201,7 +199,7 @@ public class ChinookRoute : MonoBehaviour
 		far.y = 0f;
 
 		var fromCenter = Flat(pos - _center).magnitude;
-		if (fromCenter > _half - 30f || elapsed > _cfg.EgressTimeoutSeconds)
+		if (fromCenter > _half - 30f || elapsed > HapisExtraConstants.EgressTimeoutSeconds)
 		{
 			HapisExtraMod.Log("Egress complete, despawning.");
 			HapisExtraMod.Despawn(_ent);
@@ -211,7 +209,7 @@ public class ChinookRoute : MonoBehaviour
 
 		var toFar = Flat(far - pos);
 		var wp = pos + toFar.normalized * Mathf.Min(toFar.magnitude, 200f);
-		wp.y = PathGround(pos, wp) + _cfg.CruiseClearance;
+		wp.y = PathGround(pos, wp) + HapisExtraConstants.CruiseClearance;
 		MoveTo(wp);
 	}
 }

@@ -1,5 +1,4 @@
 using System;
-using Moose.HapisExtra;
 using UnityEngine;
 
 namespace Moose.Hapis.Extra;
@@ -28,8 +27,7 @@ public class HapisExtraScheduler : MonoBehaviour
 
 	private void Update()
 	{
-		var cfg = HapisExtraMod.Config;
-		var needEntities = cfg.KeepPumpsFull || cfg.KeepWaterFull || cfg.LogLiquidPrefabs;
+		const bool needEntities = HapisExtraConstants.KeepPumpsFull || HapisExtraConstants.KeepWaterFull || HapisExtraConstants.LogLiquidPrefabs;
 
 		// wait until the map is fully loaded
 		if (BaseNetworkable.serverEntities == null || TerrainMeta.HeightMap == null || World.Size == 0)
@@ -50,7 +48,7 @@ public class HapisExtraScheduler : MonoBehaviour
 		// run the startup console command once
 		if (!_startupCommandDone)
 		{
-			if (string.IsNullOrEmpty(cfg.StartupCommand))
+			if (string.IsNullOrEmpty(HapisExtraConstants.StartupCommand))
 			{
 				_startupCommandDone = true;
 			}
@@ -64,7 +62,7 @@ public class HapisExtraScheduler : MonoBehaviour
 				else if (Time.realtimeSinceStartup >= _startupCommandTime)
 				{
 					_startupCommandDone = true;
-					RunStartupCommand(cfg.StartupCommand);
+					RunStartupCommand(HapisExtraConstants.StartupCommand);
 				}
 			}
 		}
@@ -106,31 +104,25 @@ public class HapisExtraScheduler : MonoBehaviour
 			else if (Time.realtimeSinceStartup >= _nextFillCheck)
 			{
 				_nextFillCheck = Time.realtimeSinceStartup + FillCheckSeconds;
-				if (cfg.LogLiquidPrefabs)
+				if (HapisExtraConstants.LogLiquidPrefabs)
 				{
 					LiquidCensus.RunOnce();
 				}
-				if (cfg.KeepPumpsFull)
+				if (HapisExtraConstants.KeepPumpsFull)
 				{
 					PumpFiller.Run();
 				}
-				if (cfg.KeepWaterFull)
+				if (HapisExtraConstants.KeepWaterFull)
 				{
 					WaterFiller.Run();
 				}
 			}
 		}
 
-		// Chinook timer
-		if (cfg.AutoSpawnMinutes <= 0f)
-		{
-			return;
-		}
-
 		if (_nextSpawn < 0f)
 		{
-			_nextSpawn = Time.realtimeSinceStartup + cfg.FirstSpawnDelaySeconds;
-			HapisExtraMod.Log("Map ready. First Chinook in " + cfg.FirstSpawnDelaySeconds + " seconds.");
+			_nextSpawn = Time.realtimeSinceStartup + HapisExtraConstants.FirstSpawnDelaySeconds;
+			HapisExtraMod.Log("Map ready. First Chinook in " + HapisExtraConstants.FirstSpawnDelaySeconds + " seconds.");
 			return;
 		}
 
@@ -149,7 +141,7 @@ public class HapisExtraScheduler : MonoBehaviour
 				return;
 			}
 		}
-		_nextSpawn = Time.realtimeSinceStartup + cfg.AutoSpawnMinutes * 60f;
+		_nextSpawn = Time.realtimeSinceStartup + HapisExtraConstants.AutoSpawnMinutes * 60f;
 	}
 
 	private static void RunStartupCommand(string command)

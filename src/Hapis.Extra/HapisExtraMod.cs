@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Xml.Serialization;
-using Moose.HapisExtra;
 using UnityEngine;
 
 namespace Moose.Hapis.Extra;
@@ -12,9 +9,8 @@ namespace Moose.Hapis.Extra;
 /// </summary>
 public class HapisExtraMod : IHarmonyModHooks
 {
-	public const int CurrentConfigVersion = 11;
+	private const int CurrentConfigVersion = 11;
 
-	public static HapisExtraConfig Config = new();
 	public static readonly HashSet<BaseNetworkable> Managed = [];
 	public static BaseCombatEntity? Active;
 
@@ -22,80 +18,28 @@ public class HapisExtraMod : IHarmonyModHooks
 
 	public static void Log(string msg)
 	{
-		Debug.Log("[HapisExtra] " + msg);
+		Debug.Log("[Hapis.Extra] " + msg);
 	}
 
-	public static string ModFolder => Path.Combine(Directory.GetCurrentDirectory(), "HarmonyMods");
+	private static string ModFolder => Path.Combine(Directory.GetCurrentDirectory(), "HarmonyMods");
 
 	private static string ConfigPath => Path.Combine(ModFolder, "HapisExtra.xml");
-
-	private static void SaveConfig(HapisExtraConfig c)
-	{
-		try
-		{
-			if (!Directory.Exists(ModFolder))
-			{
-				Directory.CreateDirectory(ModFolder);
-			}
-			using (var s = File.Create(ConfigPath))
-			{
-				new XmlSerializer(typeof(HapisExtraConfig)).Serialize(s, c);
-			}
-		}
-		catch (Exception e)
-		{
-			Log("Could not save config: " + e.Message);
-		}
-	}
-
-	private static HapisExtraConfig LoadConfig()
-	{
-		try
-		{
-			if (File.Exists(ConfigPath))
-			{
-				HapisExtraConfig loaded;
-				using (var s = File.OpenRead(ConfigPath))
-				{
-					loaded = (HapisExtraConfig)new XmlSerializer(typeof(HapisExtraConfig)).Deserialize(s);
-				}
-
-				if (loaded.ConfigVersion >= CurrentConfigVersion)
-				{
-					return loaded;
-				}
-
-				Log("Old config version found, resetting to new defaults.");
-			}
-
-			var fresh = new HapisExtraConfig();
-			fresh.ConfigVersion = CurrentConfigVersion;
-			SaveConfig(fresh);
-			return fresh;
-		}
-		catch (Exception e)
-		{
-			Log("Could not load config, using defaults: " + e.Message);
-			return new HapisExtraConfig();
-		}
-	}
-
+	
 	public void OnLoaded(OnHarmonyModLoadedArgs args)
 	{
-		Config = LoadConfig();
 		_schedulerObject = new GameObject("HapisExtraScheduler");
 		UnityEngine.Object.DontDestroyOnLoad(_schedulerObject);
 		_schedulerObject.AddComponent<HapisExtraScheduler>();
-		Log("Loaded. Drop point " + Config.DropX + ", " + Config.DropY + ", " + Config.DropZ);
-		Log("Auto spawn: first in " + Config.FirstSpawnDelaySeconds + "s, then every " + Config.AutoSpawnMinutes + " min.");
-		Log("Startup command: " + (string.IsNullOrEmpty(Config.StartupCommand) ? "(none)" : Config.StartupCommand));
-		Log("Pumps: " + (Config.KeepPumpsFull
-			? "on (" + Config.PumpPrefabKeywords + ", start at " + Config.PumpStartAmount + ", after " + Config.PumpTrickleDelayMinutes + " min refill slowly to " + Config.PumpMaxAmount + " over " + Config.PumpTrickleHours + " h)"
-			: "off") + ", hand-taking blocked: " + Config.BlockPumpTaking);
-		Log("Water sources: " + (Config.KeepWaterFull
-			? "on (" + Config.WaterPrefabKeywords + ", full on start, then full every " + Config.WaterRefillHours + " h)"
-			: "off"));
-		Log("Pump IO log: " + (Config.LogPumpIO ? "on" : "off") + ", liquid prefab list: " + (Config.LogLiquidPrefabs ? "on" : "off"));
+		Log("Loaded. Drop point " + HapisExtraConstants.DropX + ", " + HapisExtraConstants.DropY + ", " + HapisExtraConstants.DropZ);
+		Log("Auto spawn: first in " + HapisExtraConstants.FirstSpawnDelaySeconds + "s, then every " + HapisExtraConstants.AutoSpawnMinutes + " min.");
+		Log("Startup command: " + (string.IsNullOrEmpty(HapisExtraConstants.StartupCommand) ? "(none)" : HapisExtraConstants.StartupCommand));
+		Log("Pumps: " + (HapisExtraConstants.KeepPumpsFull
+			                 ? "on (" + HapisExtraConstants.PumpPrefabKeywords + ", start at " + HapisExtraConstants.PumpStartAmount + ", after " + HapisExtraConstants.PumpTrickleDelayMinutes + " min refill slowly to " + HapisExtraConstants.PumpMaxAmount + " over " + HapisExtraConstants.PumpTrickleHours + " h)"
+			                 : "off") + ", hand-taking blocked: " + HapisExtraConstants.BlockPumpTaking);
+		Log("Water sources: " + (HapisExtraConstants.KeepWaterFull
+			                         ? "on (" + HapisExtraConstants.WaterPrefabKeywords + ", full on start, then full every " + HapisExtraConstants.WaterRefillHours + " h)"
+			                         : "off"));
+		Log("Pump IO log: " + (HapisExtraConstants.LogPumpIO ? "on" : "off") + ", liquid prefab list: " + (HapisExtraConstants.LogLiquidPrefabs ? "on" : "off"));
 	}
 
 	public void OnUnloaded(OnHarmonyModUnloadedArgs args)
@@ -145,8 +89,7 @@ public class HapisExtraMod : IHarmonyModHooks
 			return false;
 		}
 
-		var cfg = Config;
-		var dropPos = new Vector3(cfg.DropX, cfg.DropY, cfg.DropZ);
+		var dropPos = new Vector3(HapisExtraConstants.DropX, HapisExtraConstants.DropY, HapisExtraConstants.DropZ);
 		var half = (float)World.Size * 0.5f;
 
 		// pick a map-edge start point that is a decent distance from the drop
@@ -161,13 +104,13 @@ public class HapisExtraMod : IHarmonyModHooks
 				break;
 			}
 		}
-		start.y = ChinookRoute.PathGround(start, dropPos) + cfg.CruiseClearance;
+		start.y = ChinookRoute.PathGround(start, dropPos) + HapisExtraConstants.CruiseClearance;
 
 		var look = dropPos - start;
 		look.y = 0f;
 		var rot = Quaternion.LookRotation(look.normalized);
 
-		var ent = GameManager.server.CreateEntity(cfg.Prefab, start, rot, true);
+		var ent = GameManager.server.CreateEntity(HapisExtraConstants.Prefab, start, rot, true);
 		if (ent == null)
 		{
 			message = "CreateEntity returned null. Check Prefab in config.";
@@ -199,7 +142,7 @@ public class HapisExtraMod : IHarmonyModHooks
 		}
 
 		var route = ent.gameObject.AddComponent<ChinookRoute>();
-		route.Init(ch47Controller, cfg, dropPos);
+		route.Init(ch47Controller, dropPos);
 
 		message = "Chinook spawned at " + start;
 		Log(message);

@@ -50,10 +50,6 @@ public static class PumpTakeGuardPatch
 	{
 		try
 		{
-			if (!HapisExtraMod.Config.BlockPumpTaking)
-			{
-				return true;
-			}
 			if (__instance == null)
 			{
 				return true;

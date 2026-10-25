@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
-using Moose.Hapis.Extra;
 
-namespace Moose.HapisExtra;
+namespace Moose.Hapis.Extra;
 
 /// <summary>
 /// Stops anything except this mod from Kill()-ing our Chinook.

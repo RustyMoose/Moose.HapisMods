@@ -69,7 +69,7 @@ public static class PumpIODump
 
 			var fields = slot.GetType().GetFields(Flags | BindingFlags.FlattenHierarchy);
 			var shown = 0;
-			for (var f = 0; f < fields.Length; f++)
+			foreach (var field in fields)
 			{
 				if (shown >= 25)
 				{
@@ -78,28 +78,18 @@ public static class PumpIODump
 				var value = "?";
 				try
 				{
-					var v = fields[f].GetValue(slot);
-					if (v == null)
+					var v = field.GetValue(slot);
+					value = v switch
 					{
-						value = "null";
-					}
-					else if (v is Array array)
-					{
-						value = "Array(" + array.Length + ")";
-					}
-					else if (fields[f].Name == "connectedTo")
-					{
-						value = DescribeConnection(v);
-					}
-					else
-					{
-						value = v.ToString();
-					}
+						null => "null",
+						Array array => "Array(" + array.Length + ")",
+						_ => field.Name == "connectedTo" ? DescribeConnection(v) : v.ToString()
+					};
 				}
 				catch (Exception)
 				{
 				}
-				HapisExtraMod.Log("PumpIO:     [" + i + "] " + fields[f].Name + " = " + value);
+				HapisExtraMod.Log("PumpIO:     [" + i + "] " + field.Name + " = " + value);
 				shown++;
 			}
 		}

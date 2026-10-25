@@ -13,7 +13,7 @@ public static class WaterFiller
 	private static readonly HashSet<string> Warned = [];
 	private static readonly List<BaseNetworkable> Sources = [];
 	private static float _nextRefill = -1f;
-	private static float _nextRescan = 0f;
+	private static float _nextRescan;
 	private static int _lastLoggedCount = -1;
 
 	private static void Warn(string key, string msg)
@@ -32,7 +32,7 @@ public static class WaterFiller
 	private static void Rescan()
 	{
 		Sources.Clear();
-		var words = HapisExtraMod.Config.WaterPrefabKeywords.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+		var words = HapisExtraConstants.WaterPrefabKeywords.Split([','], StringSplitOptions.RemoveEmptyEntries);
 		for (var i = 0; i < words.Length; i++)
 		{
 			words[i] = Norm(words[i]);
@@ -78,7 +78,7 @@ public static class WaterFiller
 		if (Sources.Count != _lastLoggedCount)
 		{
 			_lastLoggedCount = Sources.Count;
-			HapisExtraMod.Log("WaterFill: found " + Sources.Count + " matching water source(s) for '" + HapisExtraMod.Config.WaterPrefabKeywords + "'.");
+			HapisExtraMod.Log("WaterFill: found " + Sources.Count + " matching water source(s) for '" + HapisExtraConstants.WaterPrefabKeywords + "'.");
 			for (var i = 0; i < Sources.Count; i++)
 			{
 				HapisExtraMod.Log("WaterFill:   " + Sources[i].GetType().Name + " at " + Sources[i].transform.position + "  " + Sources[i].PrefabName);
@@ -88,7 +88,7 @@ public static class WaterFiller
 
 	private static string LiquidShortname(BaseNetworkable src)
 	{
-		var configured = HapisExtraMod.Config.WaterItemShortname;
+		var configured = HapisExtraConstants.WaterItemShortname;
 		if (!string.IsNullOrEmpty(configured))
 		{
 			return configured;
@@ -109,7 +109,6 @@ public static class WaterFiller
 		try
 		{
 			var now = Time.realtimeSinceStartup;
-			var cfg = HapisExtraMod.Config;
 
 			if (Sources.Count == 0)
 			{
@@ -166,16 +165,8 @@ public static class WaterFiller
 				}
 			}
 
-			if (cfg.WaterRefillHours > 0f)
-			{
-				_nextRefill = now + cfg.WaterRefillHours * 3600f;
-				HapisExtraMod.Log("WaterFill: filled " + filled + " of " + Sources.Count + " source(s) to full. Next fill in " + cfg.WaterRefillHours + " hour(s).");
-			}
-			else
-			{
-				_nextRefill = float.MaxValue;
-				HapisExtraMod.Log("WaterFill: filled " + filled + " of " + Sources.Count + " source(s) to full. No further fills (WaterRefillHours is 0).");
-			}
+			_nextRefill = now + HapisExtraConstants.WaterRefillHours * 3600f;
+			HapisExtraMod.Log("WaterFill: filled " + filled + " of " + Sources.Count + " source(s) to full. Next fill in " + HapisExtraConstants.WaterRefillHours + " hour(s).");
 		}
 		catch (Exception e)
 		{
