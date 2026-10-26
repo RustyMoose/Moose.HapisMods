@@ -33,6 +33,13 @@ public class NpcSpawner : MonoBehaviour
 
 	public bool stationary;
 
+	// Return-home state (used by HapisNPC.ReturnHomeIfLost): heading home, when it last made progress, and where.
+	public bool returningHome;
+
+	public float lostSince;
+
+	public Vector3 lostCheckPosition;
+
 	private static readonly Dictionary<NpcType, string> TypeToPrefabMap = new()
 	{
 		{ NpcType.Scientist, "assets/rust.ai/agents/npcplayer/humannpc/scientist/scientistnpc_roamtethered.prefab" },
@@ -52,14 +59,44 @@ public class NpcSpawner : MonoBehaviour
 		OldPos = serializedNPCSpawner.position;
 	}
 
+	// If Rust's navmesh has walking surface near this NPC, let it roam (stationary = false).
+	private void CheckRustNavmesh()
+	{
+		if (!stationary || BOT == null || BOT.IsDestroyed)
+		{
+			return;
+		}
+
+		try
+		{
+			var navigator = BOT.GetComponent<BaseNavigator>();
+			if (navigator == null)
+			{
+				return;
+			}
+
+			if (navigator.GetNearestNavmeshPosition(BOT.transform.position, out var found, 8f))
+			{
+				stationary = false;
+			}
+		}
+		catch
+		{
+			// ignored
+		}
+	}
+
 	public void SpawnNPC()
 	{
+		returningHome = false;
+		lostSince = 0f;
+
 		Vector3 position = serializedNPCSpawner.position;
 		stationary = !HapisNPC.IsOnGround(ref position, out var areaMask);
-		
+
 		ScientistNPC val = null;
 		ScarecrowNPC val2 = null;
-		
+
 		if (HapisNPC.Instance.Config.UseRustEditNPCLogic || npctype == NpcType.Scarecrow || npctype == NpcType.Murderer)
 		{
 			var val3 = GameManager.server.CreateEntity(prefab, position, Quaternion.identity, false);
@@ -82,7 +119,6 @@ public class NpcSpawner : MonoBehaviour
 						component.agentTypeID = areaMask != 25 && areaMask != 8 ? (-1372625422) : 0;
 						if (stationary)
 						{
-							component.isStopped = true;
 							component.enabled = false;
 						}
 					}
@@ -121,7 +157,6 @@ public class NpcSpawner : MonoBehaviour
 						component2.agentTypeID = ((areaMask != 25 && areaMask != 8) ? (-1372625422) : 0);
 						if (stationary)
 						{
-							component2.isStopped = true;
 							component2.enabled = false;
 						}
 					}
@@ -132,6 +167,17 @@ public class NpcSpawner : MonoBehaviour
 				}
 			}
 		}
+		// The check above uses Unity's navmesh, which Rust no longer uses, so it can wrongly mark NPCs as stationary.
+		// Ask Rust's own navmesh instead (now, and again shortly in case it wasn't ready yet).
+		if (stationary && BOT != null)
+		{
+			CheckRustNavmesh();
+			if (stationary)
+			{
+				BOT.Invoke((System.Action)CheckRustNavmesh, 3f);
+			}
+		}
+
 		BasePlayer val5 = null;
 		if (val != null)
 		{
@@ -143,138 +189,138 @@ public class NpcSpawner : MonoBehaviour
 		}
 		switch (npctype)
 		{
-		case NpcType.Scientist:
-			((BaseCombatEntity)val).InitializeHealth(HapisNPC.Instance.Config.ScientistNPCHealth, HapisNPC.Instance.Config.ScientistNPCHealth);
-			if (val != null)
-			{
-				RoamDistance = HapisNPC.Instance.Config.ScientistNPCRoamRange;
-				val.aimConeScale = HapisNPC.Instance.Config.ScientistNPCAimMultiplyer;
-				val.damageScale = HapisNPC.Instance.Config.ScientistNPCDamageScale;
-				val.Brain.CheckLOS = HapisNPC.Instance.Config.ScientistNPCCheckLOS;
-				val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.ScientistNPCIgnoreSafeZonePlayers;
-				val.Brain.SenseRange = HapisNPC.Instance.Config.ScientistNPCSenseRange;
-				val.Brain.MemoryDuration = HapisNPC.Instance.Config.ScientistNPCMemoryDuration;
-				val.Brain.TargetLostRange = HapisNPC.Instance.Config.ScientistNPCTargetLostRange;
-				val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.ScientistNPCAttackRangeMultiplier;
-				if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+			case NpcType.Scientist:
+				((BaseCombatEntity)val).InitializeHealth(HapisNPC.Instance.Config.ScientistNPCHealth, HapisNPC.Instance.Config.ScientistNPCHealth);
+				if (val != null)
 				{
-					val.inventory.Strip();
-					HapisNPC.Instance.DressNPC(val, npctype);
+					RoamDistance = HapisNPC.Instance.Config.ScientistNPCRoamRange;
+					val.aimConeScale = HapisNPC.Instance.Config.ScientistNPCAimMultiplyer;
+					val.damageScale = HapisNPC.Instance.Config.ScientistNPCDamageScale;
+					val.Brain.CheckLOS = HapisNPC.Instance.Config.ScientistNPCCheckLOS;
+					val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.ScientistNPCIgnoreSafeZonePlayers;
+					val.Brain.SenseRange = HapisNPC.Instance.Config.ScientistNPCSenseRange;
+					val.Brain.MemoryDuration = HapisNPC.Instance.Config.ScientistNPCMemoryDuration;
+					val.Brain.TargetLostRange = HapisNPC.Instance.Config.ScientistNPCTargetLostRange;
+					val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.ScientistNPCAttackRangeMultiplier;
+					if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+					{
+						val.inventory.Strip();
+						HapisNPC.Instance.DressNPC(val, npctype);
+					}
 				}
-			}
-			break;
-		case NpcType.Peacekeeper:
-			((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.PeacekeeperNPCHealth, HapisNPC.Instance.Config.PeacekeeperNPCHealth);
-			if (val != null)
-			{
-				RoamDistance = HapisNPC.Instance.Config.PeacekeeperNPCRoamRange;
-				val.aimConeScale = HapisNPC.Instance.Config.PeacekeeperNPCAimMultiplyer;
-				val.damageScale = HapisNPC.Instance.Config.PeacekeeperNPCDamageScale;
-				val.Brain.CheckLOS = HapisNPC.Instance.Config.PeacekeeperNPCCheckLOS;
-				val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.PeacekeeperNPCIgnoreSafeZonePlayers;
-				val.Brain.SenseRange = HapisNPC.Instance.Config.PeacekeeperNPCSenseRange;
-				val.Brain.MemoryDuration = HapisNPC.Instance.Config.PeacekeeperNPCMemoryDuration;
-				val.Brain.TargetLostRange = HapisNPC.Instance.Config.PeacekeeperNPCTargetLostRange;
-				val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.PeacekeeperNPCAttackRangeMultiplier;
-				if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+				break;
+			case NpcType.Peacekeeper:
+				((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.PeacekeeperNPCHealth, HapisNPC.Instance.Config.PeacekeeperNPCHealth);
+				if (val != null)
 				{
-					val.inventory.Strip();
-					HapisNPC.Instance.DressNPC(val, npctype);
+					RoamDistance = HapisNPC.Instance.Config.PeacekeeperNPCRoamRange;
+					val.aimConeScale = HapisNPC.Instance.Config.PeacekeeperNPCAimMultiplyer;
+					val.damageScale = HapisNPC.Instance.Config.PeacekeeperNPCDamageScale;
+					val.Brain.CheckLOS = HapisNPC.Instance.Config.PeacekeeperNPCCheckLOS;
+					val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.PeacekeeperNPCIgnoreSafeZonePlayers;
+					val.Brain.SenseRange = HapisNPC.Instance.Config.PeacekeeperNPCSenseRange;
+					val.Brain.MemoryDuration = HapisNPC.Instance.Config.PeacekeeperNPCMemoryDuration;
+					val.Brain.TargetLostRange = HapisNPC.Instance.Config.PeacekeeperNPCTargetLostRange;
+					val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.PeacekeeperNPCAttackRangeMultiplier;
+					if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+					{
+						val.inventory.Strip();
+						HapisNPC.Instance.DressNPC(val, npctype);
+					}
 				}
-			}
-			break;
-		case NpcType.HeavyScientist:
-			((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.HeavyScientistNPCHealth, HapisNPC.Instance.Config.HeavyScientistNPCHealth);
-			if (val != null)
-			{
-				RoamDistance = HapisNPC.Instance.Config.HeavyScientistNPCRoamRange;
-				val.aimConeScale = HapisNPC.Instance.Config.HeavyScientistNPCAimMultiplyer;
-				val.damageScale = HapisNPC.Instance.Config.HeavyScientistNPCDamageScale;
-				val.Brain.CheckLOS = HapisNPC.Instance.Config.HeavyScientistNPCCheckLOS;
-				val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.HeavyScientistNPCIgnoreSafeZonePlayers;
-				val.Brain.SenseRange = HapisNPC.Instance.Config.HeavyScientistNPCSenseRange;
-				val.Brain.MemoryDuration = HapisNPC.Instance.Config.HeavyScientistNPCMemoryDuration;
-				val.Brain.TargetLostRange = HapisNPC.Instance.Config.HeavyScientistNPCTargetLostRange;
-				val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.HeavyScientistNPCAttackRangeMultiplier;
-				if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+				break;
+			case NpcType.HeavyScientist:
+				((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.HeavyScientistNPCHealth, HapisNPC.Instance.Config.HeavyScientistNPCHealth);
+				if (val != null)
 				{
-					val.inventory.Strip();
-					HapisNPC.Instance.DressNPC(val, npctype);
+					RoamDistance = HapisNPC.Instance.Config.HeavyScientistNPCRoamRange;
+					val.aimConeScale = HapisNPC.Instance.Config.HeavyScientistNPCAimMultiplyer;
+					val.damageScale = HapisNPC.Instance.Config.HeavyScientistNPCDamageScale;
+					val.Brain.CheckLOS = HapisNPC.Instance.Config.HeavyScientistNPCCheckLOS;
+					val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.HeavyScientistNPCIgnoreSafeZonePlayers;
+					val.Brain.SenseRange = HapisNPC.Instance.Config.HeavyScientistNPCSenseRange;
+					val.Brain.MemoryDuration = HapisNPC.Instance.Config.HeavyScientistNPCMemoryDuration;
+					val.Brain.TargetLostRange = HapisNPC.Instance.Config.HeavyScientistNPCTargetLostRange;
+					val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.HeavyScientistNPCAttackRangeMultiplier;
+					if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+					{
+						val.inventory.Strip();
+						HapisNPC.Instance.DressNPC(val, npctype);
+					}
 				}
-			}
-			break;
-		case NpcType.JunkpileScientist:
-			((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.JunkpileScientistNPCHealth, HapisNPC.Instance.Config.JunkpileScientistNPCHealth);
-			if (val != null)
-			{
-				RoamDistance = HapisNPC.Instance.Config.JunkpileScientistNPCRoamRange;
-				val.aimConeScale = HapisNPC.Instance.Config.JunkpileScientistNPCAimMultiplyer;
-				val.damageScale = HapisNPC.Instance.Config.JunkpileScientistNPCDamageScale;
-				val.Brain.CheckLOS = HapisNPC.Instance.Config.JunkpileScientistNPCCheckLOS;
-				val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.JunkpileScientistNPCIgnoreSafeZonePlayers;
-				val.Brain.SenseRange = HapisNPC.Instance.Config.JunkpileScientistNPCSenseRange;
-				val.Brain.MemoryDuration = HapisNPC.Instance.Config.JunkpileScientistNPCMemoryDuration;
-				val.Brain.TargetLostRange = HapisNPC.Instance.Config.JunkpileScientistNPCTargetLostRange;
-				val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.JunkpileScientistNPCAttackRangeMultiplier;
-				if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+				break;
+			case NpcType.JunkpileScientist:
+				((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.JunkpileScientistNPCHealth, HapisNPC.Instance.Config.JunkpileScientistNPCHealth);
+				if (val != null)
 				{
-					val.inventory.Strip();
-					HapisNPC.Instance.DressNPC(val, npctype);
+					RoamDistance = HapisNPC.Instance.Config.JunkpileScientistNPCRoamRange;
+					val.aimConeScale = HapisNPC.Instance.Config.JunkpileScientistNPCAimMultiplyer;
+					val.damageScale = HapisNPC.Instance.Config.JunkpileScientistNPCDamageScale;
+					val.Brain.CheckLOS = HapisNPC.Instance.Config.JunkpileScientistNPCCheckLOS;
+					val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.JunkpileScientistNPCIgnoreSafeZonePlayers;
+					val.Brain.SenseRange = HapisNPC.Instance.Config.JunkpileScientistNPCSenseRange;
+					val.Brain.MemoryDuration = HapisNPC.Instance.Config.JunkpileScientistNPCMemoryDuration;
+					val.Brain.TargetLostRange = HapisNPC.Instance.Config.JunkpileScientistNPCTargetLostRange;
+					val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.JunkpileScientistNPCAttackRangeMultiplier;
+					if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+					{
+						val.inventory.Strip();
+						HapisNPC.Instance.DressNPC(val, npctype);
+					}
 				}
-			}
-			break;
-		case NpcType.Bandit:
-			((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.BanditNPCHealth, HapisNPC.Instance.Config.BanditNPCHealth);
-			if (val != null)
-			{
-				RoamDistance = HapisNPC.Instance.Config.BanditNPCRoamRange;
-				val.aimConeScale = HapisNPC.Instance.Config.BanditNPCAimMultiplyer;
-				val.damageScale = HapisNPC.Instance.Config.BanditNPCDamageScale;
-				val.Brain.CheckLOS = HapisNPC.Instance.Config.BanditNPCCheckLOS;
-				val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.BanditNPCIgnoreSafeZonePlayers;
-				val.Brain.SenseRange = HapisNPC.Instance.Config.BanditNPCSenseRange;
-				val.Brain.MemoryDuration = HapisNPC.Instance.Config.BanditNPCMemoryDuration;
-				val.Brain.TargetLostRange = HapisNPC.Instance.Config.BanditNPCTargetLostRange;
-				val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.BanditNPCAttackRangeMultiplier;
-				if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+				break;
+			case NpcType.Bandit:
+				((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.BanditNPCHealth, HapisNPC.Instance.Config.BanditNPCHealth);
+				if (val != null)
 				{
-					val.inventory.Strip();
-					HapisNPC.Instance.DressNPC(val, npctype);
+					RoamDistance = HapisNPC.Instance.Config.BanditNPCRoamRange;
+					val.aimConeScale = HapisNPC.Instance.Config.BanditNPCAimMultiplyer;
+					val.damageScale = HapisNPC.Instance.Config.BanditNPCDamageScale;
+					val.Brain.CheckLOS = HapisNPC.Instance.Config.BanditNPCCheckLOS;
+					val.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.BanditNPCIgnoreSafeZonePlayers;
+					val.Brain.SenseRange = HapisNPC.Instance.Config.BanditNPCSenseRange;
+					val.Brain.MemoryDuration = HapisNPC.Instance.Config.BanditNPCMemoryDuration;
+					val.Brain.TargetLostRange = HapisNPC.Instance.Config.BanditNPCTargetLostRange;
+					val.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.BanditNPCAttackRangeMultiplier;
+					if (!HapisNPC.Instance.Config.UseRustEditNPCLogic)
+					{
+						val.inventory.Strip();
+						HapisNPC.Instance.DressNPC(val, npctype);
+					}
 				}
-			}
-			break;
-		case NpcType.Murderer:
-			((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.MurdererNPCHealth, HapisNPC.Instance.Config.MurdererNPCHealth);
-			if (val2 != null)
-			{
-				RoamDistance = HapisNPC.Instance.Config.MurdererNPCRoamRange;
-				val2.damageScale = HapisNPC.Instance.Config.MurdererNPCDamageScale;
-				val2.Brain.CheckLOS = HapisNPC.Instance.Config.MurdererNPCCheckLOS;
-				val2.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.MurdererNPCIgnoreSafeZonePlayers;
-				val2.Brain.SenseRange = HapisNPC.Instance.Config.MurdererNPCSenseRange;
-				val2.Brain.MemoryDuration = HapisNPC.Instance.Config.MurdererNPCMemoryDuration;
-				val2.Brain.TargetLostRange = HapisNPC.Instance.Config.MurdererNPCTargetLostRange;
-				val2.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.MurdererNPCAttackRangeMultiplier;
-				val2.inventory.Strip();
-				HapisNPC.Instance.DressNPC(val2, npctype);
-			}
-			break;
-		case NpcType.Scarecrow:
-			((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.ScarecrowNPCHealth, HapisNPC.Instance.Config.ScarecrowNPCHealth);
-			if (val2 != null)
-			{
-				RoamDistance = HapisNPC.Instance.Config.ScarecrowNPCRoamRange;
-				val2.damageScale = HapisNPC.Instance.Config.ScarecrowNPCDamageScale;
-				val2.Brain.CheckLOS = HapisNPC.Instance.Config.ScarecrowNPCCheckLOS;
-				val2.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.ScarecrowNPCIgnoreSafeZonePlayers;
-				val2.Brain.SenseRange = HapisNPC.Instance.Config.ScarecrowNPCSenseRange;
-				val2.Brain.MemoryDuration = HapisNPC.Instance.Config.ScarecrowNPCMemoryDuration;
-				val2.Brain.TargetLostRange = HapisNPC.Instance.Config.ScarecrowNPCTargetLostRange;
-				val2.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.ScarecrowNPCAttackRangeMultiplier;
-				val2.inventory.Strip();
-				HapisNPC.Instance.DressNPC(val2, npctype);
-			}
-			break;
+				break;
+			case NpcType.Murderer:
+				((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.MurdererNPCHealth, HapisNPC.Instance.Config.MurdererNPCHealth);
+				if (val2 != null)
+				{
+					RoamDistance = HapisNPC.Instance.Config.MurdererNPCRoamRange;
+					val2.damageScale = HapisNPC.Instance.Config.MurdererNPCDamageScale;
+					val2.Brain.CheckLOS = HapisNPC.Instance.Config.MurdererNPCCheckLOS;
+					val2.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.MurdererNPCIgnoreSafeZonePlayers;
+					val2.Brain.SenseRange = HapisNPC.Instance.Config.MurdererNPCSenseRange;
+					val2.Brain.MemoryDuration = HapisNPC.Instance.Config.MurdererNPCMemoryDuration;
+					val2.Brain.TargetLostRange = HapisNPC.Instance.Config.MurdererNPCTargetLostRange;
+					val2.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.MurdererNPCAttackRangeMultiplier;
+					val2.inventory.Strip();
+					HapisNPC.Instance.DressNPC(val2, npctype);
+				}
+				break;
+			case NpcType.Scarecrow:
+				((BaseCombatEntity)val5).InitializeHealth(HapisNPC.Instance.Config.ScarecrowNPCHealth, HapisNPC.Instance.Config.ScarecrowNPCHealth);
+				if (val2 != null)
+				{
+					RoamDistance = HapisNPC.Instance.Config.ScarecrowNPCRoamRange;
+					val2.damageScale = HapisNPC.Instance.Config.ScarecrowNPCDamageScale;
+					val2.Brain.CheckLOS = HapisNPC.Instance.Config.ScarecrowNPCCheckLOS;
+					val2.Brain.IgnoreSafeZonePlayers = HapisNPC.Instance.Config.ScarecrowNPCIgnoreSafeZonePlayers;
+					val2.Brain.SenseRange = HapisNPC.Instance.Config.ScarecrowNPCSenseRange;
+					val2.Brain.MemoryDuration = HapisNPC.Instance.Config.ScarecrowNPCMemoryDuration;
+					val2.Brain.TargetLostRange = HapisNPC.Instance.Config.ScarecrowNPCTargetLostRange;
+					val2.Brain.AttackRangeMultiplier = HapisNPC.Instance.Config.ScarecrowNPCAttackRangeMultiplier;
+					val2.inventory.Strip();
+					HapisNPC.Instance.DressNPC(val2, npctype);
+				}
+				break;
 		}
 	}
-}
+}

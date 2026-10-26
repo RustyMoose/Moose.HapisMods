@@ -36,6 +36,9 @@ public class Config
 
 	public float ScientistNPCAttackRangeMultiplier = 1f;
 
+	// Chance (0 to 1) that a Scientist spawns with one F1 grenade. 0.25 = 1 in 4. It throws it once per life.
+	public float ScientistGrenadeChance = 0.25f;
+
 	public float PeacekeeperNPCHealth = 120f;
 
 	public float PeacekeeperNPCAimMultiplyer = 0.8f;
