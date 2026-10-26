@@ -38,8 +38,4 @@ public static class HapisExtraConstants
 	public const string WaterPrefabKeywords = "watertreatment,pipe";   // ALL must appear in the prefab path (ignores _ - and spaces)
 	public const string WaterItemShortname = "";                       // empty = the source's own default liquid, else "water"
 	public const float WaterRefillHours = 2f;                          // 0 = only once at start
-
-	// diagnostics (log only, changes nothing)
-	public const bool LogPumpIO = false;          // pump IO slots, once
-	public const bool LogLiquidPrefabs = true;    // lists every liquid container prefab on the map, once
 }

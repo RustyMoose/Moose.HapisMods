@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 
 namespace Moose.Hapis.Extra;
@@ -16,17 +15,14 @@ namespace Moose.Hapis.Extra;
 public static class PumpFiller
 {
 	private static readonly HashSet<string> Warned = [];
-	private static readonly List<BaseNetworkable> Pumps = [];
-	private static readonly Dictionary<BaseNetworkable, float> Carry = new();
+	private static readonly List<WaterCatcher> Pumps = [];
+	private static readonly Dictionary<WaterCatcher, float> Carry = new();
 	private static float _nextRescan;
 	private static float _trickleStart = -1f;
 	private static float _lastTrickle = -1f;
 	private static float _nextStatusLog;
 	private static int _lastLoggedCount = -1;
-	private static bool _ioLogged;
 	private static bool _startFillDone;
-
-	private const BindingFlags Fields = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
 	private static void Warn(string key, string msg)
 	{
@@ -36,57 +32,9 @@ public static class PumpFiller
 		}
 	}
 
-	// true if this entity's prefab path matches the pump keywords (used by the take guard too)
-	public static bool IsPump(BaseNetworkable? n)
-	{
-		if (n == null)
-		{
-			return false;
-		}
-		var path = n.PrefabName;
-		if (string.IsNullOrEmpty(path))
-		{
-			return false;
-		}
-
-		var words = HapisExtraConstants.PumpPrefabKeywords.Split([','], StringSplitOptions.RemoveEmptyEntries);
-		if (words.Length == 0)
-		{
-			return false;
-		}
-
-		for (var i = 0; i < words.Length; i++)
-		{
-			var w = words[i].Trim();
-			if (w.Length == 0)
-			{
-				continue;
-			}
-			if (path.IndexOf(w, StringComparison.OrdinalIgnoreCase) < 0)
-			{
-				return false;
-			}
-		}
-		return true;
-	}
-
 	private static void Rescan()
 	{
-		Pumps.Clear();
-
-		var all = EntityList.Get();
-		for (var k = 0; k < all.Count; k++)
-		{
-			var n = all[k];
-			if (n.IsDestroyed)
-			{
-				continue;
-			}
-			if (IsPump(n))
-			{
-				Pumps.Add(n);
-			}
-		}
+		LiquidSources.CollectPumps(Pumps);
 
 		if (Pumps.Count != _lastLoggedCount)
 		{
@@ -99,57 +47,9 @@ public static class PumpFiller
 		}
 	}
 
-	public static object? GetField(object target, string name)
+	private static string LiquidShortname(WaterCatcher pump)
 	{
-		for (var t = target.GetType(); t != null && t != typeof(MonoBehaviour); t = t.BaseType)
-		{
-			var f = t.GetField(name, Fields);
-			if (f == null)
-			{
-				continue;
-			}
-			try
-			{
-				return f.GetValue(target);
-			}
-			catch (Exception)
-			{
-				return null;
-			}
-		}
-		return null;
-	}
-
-	public static ItemContainer? FindContainer(BaseNetworkable e)
-	{
-		for (var t = e.GetType(); t != null && t != typeof(MonoBehaviour); t = t.BaseType)
-		{
-			var fields = t.GetFields(Fields);
-			for (var i = 0; i < fields.Length; i++)
-			{
-				if (fields[i].FieldType != typeof(ItemContainer))
-				{
-					continue;
-				}
-				try
-				{
-					if (fields[i].GetValue(e) is ItemContainer container)
-					{
-						return container;
-					}
-				}
-				catch (Exception)
-				{
-					//
-				}
-			}
-		}
-		return null;
-	}
-
-	private static string LiquidShortname(BaseNetworkable pump)
-	{
-		var def = GetField(pump, "defaultLiquid") as ItemDefinition;
+		var def = pump.defaultLiquid;
 		if (def != null && !string.IsNullOrEmpty(def.shortname))
 		{
 			return def.shortname;
@@ -268,9 +168,9 @@ public static class PumpFiller
 		}
 	}
 
-	private static int GetAmount(BaseNetworkable pump)
+	private static int GetAmount(WaterCatcher pump)
 	{
-		var c = FindContainer(pump);
+		var c = pump.inventory;
 		if (c == null || c.itemList == null || c.itemList.Count == 0)
 		{
 			return 0;
@@ -278,15 +178,15 @@ public static class PumpFiller
 		return c.itemList[0].amount;
 	}
 
-	private static bool SetAmount(BaseNetworkable pump, int amount)
+	private static bool SetAmount(WaterCatcher pump, int amount)
 	{
 		return SetAmount(pump, amount, null);
 	}
 
 	// sets the container's liquid to exactly this amount (creates the item if it is empty)
-	public static bool SetAmount(BaseNetworkable pump, int amount, string? shortnameOverride)
+	public static bool SetAmount(WaterCatcher pump, int amount, string? shortnameOverride)
 	{
-		var c = FindContainer(pump);
+		var c = pump.inventory;
 		if (c == null)
 		{
 			Warn("nocontainer-" + pump.GetType().Name, "no ItemContainer found on " + pump.GetType().Name + " (" + pump.PrefabName + ").");
@@ -310,22 +210,7 @@ public static class PumpFiller
 		}
 
 		item.amount = amount;
-		var moved = item.MoveToContainer(c);
-
-		if (!moved)
-		{
-			// the inventory is locked for players; unlock for this one move, then lock it again
-			c.SetLocked(false);
-			moved = item.MoveToContainer(c);
-			var lockObj = GetField(pump, "lockInventory");
-			var wasLocked = lockObj is bool locked and true;
-			if (wasLocked)
-			{
-				c.SetLocked(true);
-			}
-		}
-
-		if (!moved)
+		if (!item.MoveToContainer(c))
 		{
 			item.Remove();
 			Warn("nomove-" + pump.GetType().Name, "could not put " + shortname + " into the container at " + pump.transform.position + " (container refused).");

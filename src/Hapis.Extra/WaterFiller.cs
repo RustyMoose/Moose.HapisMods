@@ -11,7 +11,7 @@ namespace Moose.Hapis.Extra;
 public static class WaterFiller
 {
 	private static readonly HashSet<string> Warned = [];
-	private static readonly List<BaseNetworkable> Sources = [];
+	private static readonly List<WaterCatcher> Sources = [];
 	private static float _nextRefill = -1f;
 	private static float _nextRescan;
 	private static int _lastLoggedCount = -1;
@@ -24,56 +24,9 @@ public static class WaterFiller
 		}
 	}
 
-	private static string Norm(string s)
-	{
-		return s.Replace("_", "").Replace("-", "").Replace(" ", "").ToLowerInvariant();
-	}
-
 	private static void Rescan()
 	{
-		Sources.Clear();
-		var words = HapisExtraConstants.WaterPrefabKeywords.Split([','], StringSplitOptions.RemoveEmptyEntries);
-		for (var i = 0; i < words.Length; i++)
-		{
-			words[i] = Norm(words[i]);
-		}
-
-		var all = EntityList.Get();
-		for (var k = 0; k < all.Count; k++)
-		{
-			var n = all[k];
-			if (n.IsDestroyed)
-			{
-				continue;
-			}
-			var path = n.PrefabName;
-			if (string.IsNullOrEmpty(path))
-			{
-				continue;
-			}
-			path = Norm(path);
-
-			var allMatch = words.Length > 0;
-			for (var i = 0; i < words.Length; i++)
-			{
-				if (path.IndexOf(words[i], StringComparison.Ordinal) < 0)
-				{
-					allMatch = false;
-					break;
-				}
-			}
-			if (!allMatch)
-			{
-				continue;
-			}
-
-			// only things that really have an inventory (never touches decoration)
-			if (PumpFiller.FindContainer(n) == null)
-			{
-				continue;
-			}
-			Sources.Add(n);
-		}
+		LiquidSources.CollectWaterSources(Sources);
 
 		if (Sources.Count != _lastLoggedCount)
 		{
@@ -86,7 +39,7 @@ public static class WaterFiller
 		}
 	}
 
-	private static string LiquidShortname(BaseNetworkable src)
+	private static string LiquidShortname(WaterCatcher src)
 	{
 		var configured = HapisExtraConstants.WaterItemShortname;
 		if (!string.IsNullOrEmpty(configured))
@@ -94,7 +47,7 @@ public static class WaterFiller
 			return configured;
 		}
 
-		var def = PumpFiller.GetField(src, "defaultLiquid") as ItemDefinition;
+		var def = src.defaultLiquid;
 		if (def != null && !string.IsNullOrEmpty(def.shortname))
 		{
 			return def.shortname;
@@ -143,7 +96,7 @@ public static class WaterFiller
 					continue;
 				}
 
-				var c = PumpFiller.FindContainer(src);
+				var c = src.inventory;
 				if (c == null)
 				{
 					continue;

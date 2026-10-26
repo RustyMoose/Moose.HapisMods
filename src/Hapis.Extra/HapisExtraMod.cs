@@ -39,7 +39,13 @@ public class HapisExtraMod : IHarmonyModHooks
 		Log("Water sources: " + (HapisExtraConstants.KeepWaterFull
 			                         ? "on (" + HapisExtraConstants.WaterPrefabKeywords + ", full on start, then full every " + HapisExtraConstants.WaterRefillHours + " h)"
 			                         : "off"));
-		Log("Pump IO log: " + (HapisExtraConstants.LogPumpIO ? "on" : "off") + ", liquid prefab list: " + (HapisExtraConstants.LogLiquidPrefabs ? "on" : "off"));
+
+		// on a hot reload the server is already open, so OpenConnection will not fire again
+		var serverMgr = SingletonComponent<ServerMgr>.Instance;
+		if (serverMgr != null && serverMgr.NetworkPortsConfigured)
+		{
+			HapisExtraScheduler.MarkServerReady();
+		}
 	}
 
 	public void OnUnloaded(OnHarmonyModUnloadedArgs args)
