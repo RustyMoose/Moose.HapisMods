@@ -55,6 +55,9 @@
         <Reference Include="UnityEngine.CoreModule" />
         <Reference Include="UnityEngine.PhysicsModule" />
     </ItemGroup>
+    <ItemGroup>
+        <Compile Include="..\Shared\**\*.cs" LinkBase="Shared" />
+    </ItemGroup>
     <PropertyGroup>
         <PostBuildEvent>
             xcopy "Hapis.*.dll" "$(SolutionDir)artifacts\" /F /R /Y /I

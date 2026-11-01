@@ -1,24 +1,61 @@
 using System;
+using System.Linq;
+using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
 namespace Moose.Hapis.IO.Patches;
 
-[HarmonyPatch(typeof(World), nameof(World.SpawnPrefab), typeof(string), typeof(Prefab), typeof(Vector3), typeof(Quaternion), typeof(Vector3))]
+[HarmonyPatch]
 internal class WorldSpawn
 {
-	[HarmonyPrefix]
-	private static bool Prefix(string category, Prefab prefab, Vector3 position, Quaternion rotation, Vector3 scale)
-	{
-		try
-		{
-			return HapisIO.Instance.OnPrefabSpawning(category, prefab, position, rotation, scale);
-		}
-		catch(Exception e)
-		{
-			Debug.LogError("[Hapis.IO] World Spawn Hook Error");
-			Debug.LogError(e);
-			return true;
-		}
-	}
+    private static MethodBase _target;
+
+    private static bool Prepare()
+    {
+        _target = FindTarget();
+
+        Debug.Log(_target != null
+            ? $"[Hapis.IO] World spawn hook patched on {_target.DeclaringType?.Name}.{_target.Name}"
+            : "[Hapis.IO] World spawn hook NOT found: prefab spawn handling is disabled");
+
+        // Returning false tells Harmony to skip this patch instead of crashing
+        return _target != null;
+    }
+
+    private static MethodBase TargetMethod()
+    {
+        return _target;
+    }
+
+    private static MethodBase FindTarget()
+    {
+        var expected = new[]
+        {
+            typeof(string), typeof(Prefab), typeof(Vector3), typeof(Quaternion), typeof(Vector3)
+        };
+
+        return AccessTools.GetDeclaredMethods(typeof(World))
+            .Where(m => m.IsStatic && !m.ContainsGenericParameters)
+            .Where(m => m.GetParameters().Select(p => p.ParameterType).SequenceEqual(expected))
+            .OrderByDescending(m => m.Name.IndexOf("SpawnPrefab", StringComparison.OrdinalIgnoreCase) >= 0)
+            .ThenByDescending(m => m.Name.IndexOf("Spawn", StringComparison.OrdinalIgnoreCase) >= 0)
+            .FirstOrDefault();
+    }
+
+    // __0 = category, __1 = prefab, __2 = position, __3 = rotation, __4 = scale
+    [HarmonyPrefix]
+    private static bool Prefix(string __0, Prefab __1, Vector3 __2, Quaternion __3, Vector3 __4)
+    {
+        try
+        {
+            return HapisIO.Instance.OnPrefabSpawning(__0, __1, __2, __3, __4);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("[Hapis.IO] World Spawn Hook Error");
+            Debug.LogError(e);
+            return true;
+        }
+    }
 }

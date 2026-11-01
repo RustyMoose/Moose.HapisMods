@@ -206,7 +206,7 @@ public class HapisCargoPath
 			}
 		}
 		
-		return null;
+		return Moose.Hapis.RustEdit2.Re2Data.Xml("SerializedPathList");
 	}
 
 	#endregion
