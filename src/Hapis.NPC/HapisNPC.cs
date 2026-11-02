@@ -154,6 +154,7 @@ public class HapisNPC
 								}
 							}, 8f);
 						}
+						Behaviours.NpcCover.OnHurt(npcSpawner, npc, initiatorPlayer);
 					}
 				}
 				return true;
@@ -209,6 +210,8 @@ public class HapisNPC
 		Facepunch.Pool.FreeUnmanaged(ref list);
 		return result;
 	}
+
+	public bool OwnsNpc(BaseEntity entity) => entity != null && _groundSnapNpcs.Contains(entity);
 
 	private IEnumerator NPCAIFunction()
 	{
@@ -331,6 +334,7 @@ public class HapisNPC
 					{
 						if (Vector3.Distance(npcs.target.transform.position, npcs.BOT.transform.position) > val3.Brain.SenseRange)
 						{
+							Behaviours.NpcCover.Release(val3);
 							if (!npcs.cooldown)
 							{
 								npcs.target = null;
@@ -348,6 +352,11 @@ public class HapisNPC
 							{
 								(val3).Brain.Events.Memory.Entity.Set(npcs.target, 0);
 							}
+							if (Behaviours.NpcCover.Handle(npcs, val3, npcs.target))
+							{
+								TryThrowGrenade(val3, npcs.target);
+								continue;
+							}
 							if (!(val3).Brain.Navigator.Moving)
 							{
 								WakeNavigator(val3.Brain.Navigator);
@@ -358,6 +367,7 @@ public class HapisNPC
 					}
 					else
 					{
+						Behaviours.NpcCover.Release(val3);
 						RandomMovement(npcs);
 						npcs.target = null;
 					}
@@ -968,7 +978,7 @@ public class HapisNPC
 				//
 			}
 		}
-		return null;
+		return Moose.Hapis.RustEdit2.Re2Data.Xml(dateName);
 	}
 
 	private static T? DeserializePlugin<T>(byte[] bytes)
