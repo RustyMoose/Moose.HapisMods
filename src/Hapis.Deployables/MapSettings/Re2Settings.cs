@@ -189,39 +189,39 @@ internal static class Re2Settings
 
 	private static void ApplySign(ISignage signage, JObject data)
 	{
-		try
-		{
-			var current = signage.GetTextureCRCs();
-			if (current != null && current.Any(c => c != 0))
-			{
-				return;
-			}
-
-			var images = (JArray)data["Images"]!;
-			var count = Math.Max(1, signage.TextureCount);
-			var crcs = new uint[count];
-			var stored = 0;
-			for (var i = 0; i < count && i < images.Count; i++)
-			{
-				var bytes = Bytes(images[i]);
-				if (bytes == null || bytes.Length == 0)
-				{
-					continue;
-				}
-
-				crcs[i] = FileStorage.server.Store(bytes, signage.FileType, signage.NetworkID, (uint)i);
-				stored++;
-			}
-
-			if (stored > 0)
-			{
-				signage.SetTextureCRCs(crcs);
-			}
-		}
-		catch (Exception e)
-		{
-			HapisLog.Once("RustEdit 2 sign images", e);
-		}
+		// try
+		// {
+		// 	var current = signage.GetTextureCRCs();
+		// 	if (current != null && current.Any(c => c != 0))
+		// 	{
+		// 		return;
+		// 	}
+		//
+		// 	var images = (JArray)data["Images"]!;
+		// 	var count = Math.Max(1, signage.TextureCount);
+		// 	var crcs = new uint[count];
+		// 	var stored = 0;
+		// 	for (var i = 0; i < count && i < images.Count; i++)
+		// 	{
+		// 		var bytes = Bytes(images[i]);
+		// 		if (bytes == null || bytes.Length == 0)
+		// 		{
+		// 			continue;
+		// 		}
+		//
+		// 		crcs[i] = FileStorage.server.Store(bytes, signage.FileType, signage.NetworkID, (uint)i);
+		// 		stored++;
+		// 	}
+		//
+		// 	if (stored > 0)
+		// 	{
+		// 		signage.SetTextureCRCs(crcs);
+		// 	}
+		// }
+		// catch (Exception e)
+		// {
+		// 	HapisLog.Once("RustEdit 2 sign images", e);
+		// }
 	}
 
 	public static void ApplyRadiation()
