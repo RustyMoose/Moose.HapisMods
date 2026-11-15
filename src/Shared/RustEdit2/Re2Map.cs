@@ -148,7 +148,7 @@ internal static class Re2Map
 		byte[]? blob;
 		try
 		{
-			blob = World.Serialization?.world?.maps?.FirstOrDefault(m => m != null && m.name == BlockName)?.data;
+			blob = MapBlocks.Find(BlockName)?.data;
 		}
 		catch (Exception e)
 		{
@@ -580,7 +580,7 @@ internal static class Re2Map
 
 	private static void ReportUnsupported()
 	{
-		var types = EntityList.Where(e => e.Type != "Prefab" && e.Type != "NPCSpawner").GroupBy(e => e.Type).Select(g => g.Count() + " " + g.Key);
+		var types = EntityList.Where(e => e.Type != "Prefab" && e.Type != "NPCSpawner" && e.Type != "CH47LandingZone").GroupBy(e => e.Type).Select(g => g.Count() + " " + g.Key);
 		var parts = UnusedParts.Concat(types).ToList();
 
 		if (LoadoutProfiles is { Count: > 0 })

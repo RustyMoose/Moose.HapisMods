@@ -95,6 +95,21 @@ public class SettingsFile
 
 	[JsonProperty("Water Refill Hours (0 = only on server start)")]
 	public float WaterRefillHours = 2f;
+
+	[JsonProperty("Cargo Docking On")]
+	public bool CargoDocking = true;
+
+	[JsonProperty("Cargo Dock Only On Maps Named (empty = any map)")]
+	public string CargoDockMap = "hapis";
+
+	[JsonProperty("Cargo Dock Position X")]
+	public float CargoDockX = -1541f;
+
+	[JsonProperty("Cargo Dock Position Z")]
+	public float CargoDockZ = 426f;
+
+	[JsonProperty("Pause Cargo Event Timer While Docked")]
+	public bool CargoPauseWhileDocked = true;
 }
 
 public static class Settings
@@ -103,6 +118,7 @@ public static class Settings
 	private const string FileName = "HapisExtras.json";
 
 	public static SettingsFile Current = new();
+	public static bool Loaded;
 
 	private static readonly JsonSerializerSettings Json = new() { ObjectCreationHandling = ObjectCreationHandling.Replace };
 
@@ -138,8 +154,10 @@ public static class Settings
 		file.PumpPrefabKeywords ??= string.Empty;
 		file.WaterPrefabKeywords ??= string.Empty;
 		file.WaterItemShortname ??= string.Empty;
+		file.CargoDockMap = (file.CargoDockMap ?? string.Empty).Trim();
 		file.PumpStartAmount = Math.Max(0, file.PumpStartAmount);
 		file.PumpMaxAmount = Math.Max(file.PumpStartAmount, file.PumpMaxAmount);
 		Current = file;
+		Loaded = true;
 	}
 }

@@ -249,11 +249,23 @@ public class HapisNPC
 					if ((npcs.BOT == null || npcs.BOT.IsDestroyed) && !npcs.Respawning)
 					{
 						_groundSnapNpcs.Remove(npcs.BOT);
+						if (!ReferenceEquals(npcs.BOT, null))
+						{
+							_lastPlayerNear.Remove(npcs.BOT);
+						}
 						npcs.Respawning = true;
 						npcs.Delay = UnityEngine.Time.time + UnityEngine.Random.Range(npcs.serializedNPCSpawner.respawnMin, npcs.serializedNPCSpawner.respawnMax);
 						continue;
 					}
 					_groundSnapNpcs.Add(npcs.BOT);
+					if (!KeepAwake(npcs.BOT))
+					{
+						continue;
+					}
+					if (Behaviours.StairRunner.IsRunning(npcs.BOT))
+					{
+						continue;
+					}
 					SnapStandingNpc(npcs.BOT);
 					ReturnHomeIfLost(npcs);
 					if (Config.UseRustEditNPCLogic || npcs.npctype == NpcType.Scarecrow || npcs.npctype == NpcType.Murderer)
@@ -340,6 +352,10 @@ public class HapisNPC
 								npcs.target = null;
 								val3.Brain.Events.Memory.Entity.Set(val3, 0);
 							}
+							if (Behaviours.StairRunner.Try(val3, val3.Brain.Navigator, npcs.serializedNPCSpawner.position))
+							{
+								continue;
+							}
 							if (!val3.Brain.Navigator.Moving)
 							{
 								WakeNavigator(val3.Brain.Navigator);
@@ -351,6 +367,11 @@ public class HapisNPC
 							if (!npcs.cooldown)
 							{
 								(val3).Brain.Events.Memory.Entity.Set(npcs.target, 0);
+							}
+							if (Behaviours.StairRunner.Try(val3, val3.Brain.Navigator, npcs.target.transform.position))
+							{
+								Behaviours.NpcCover.Release(val3);
+								continue;
 							}
 							if (Behaviours.NpcCover.Handle(npcs, val3, npcs.target))
 							{
@@ -396,7 +417,7 @@ public class HapisNPC
 		}
 
 		BaseEntity entity = navigator.BaseEntity;
-		if (entity == null || !_groundSnapNpcs.Contains(entity))
+		if (entity == null || (!_groundSnapNpcs.Contains(entity) && !Events.HeavyChase.Owns(entity)))
 		{
 			return;
 		}
@@ -407,7 +428,7 @@ public class HapisNPC
 	// Puts an NPC's feet on the real floor under it: straight down only (never up), at most GroundSnapMaxDrop,
 	// plus any extra lowering for that floor prefab from FloorOffsets.txt.
 	// Used by the walking hook above, and by the AI loop for NPCs that are standing still.
-	private void SnapEntityToFloor(BaseEntity entity)
+	internal void SnapEntityToFloor(BaseEntity entity)
 	{
 		var position = entity.ServerPosition;
 		var start = position + Vector3.up * GroundSnapRayStart;
@@ -586,6 +607,42 @@ public class HapisNPC
 		npcs.lostSince = 0f;
 	}
 
+	private const float WakeDistance = 150f;
+
+	private const float SleepDelay = 30f;
+
+	private readonly Dictionary<BaseEntity, float> _lastPlayerNear = new();
+
+	private bool KeepAwake(BaseEntity entity)
+	{
+		BaseAIBrain? brain = entity is HumanNPC human ? human.Brain : entity is ScarecrowNPC scarecrow ? scarecrow.Brain : null;
+		if (brain == null)
+		{
+			return true;
+		}
+
+		if (AnyConnectedPlayerNear(entity.transform.position, WakeDistance))
+		{
+			_lastPlayerNear[entity] = UnityEngine.Time.time;
+			((IAISleepable)brain).WakeAI();
+			return true;
+		}
+
+		if (!_lastPlayerNear.TryGetValue(entity, out var last))
+		{
+			return false;
+		}
+
+		if (UnityEngine.Time.time - last < SleepDelay)
+		{
+			return true;
+		}
+
+		_lastPlayerNear.Remove(entity);
+		((IAISleepable)brain).SleepAI();
+		return false;
+	}
+
 	// True if a real, connected, living player is within maxDist.
 	private static bool AnyConnectedPlayerNear(Vector3 position, float maxDist)
 	{
@@ -620,7 +677,7 @@ public class HapisNPC
 
 	// NPCs standing still (for example at their spawn point) are never moved by Rust, so the walking hook never
 	// corrects them. The AI loop calls this every tick to put standing NPCs on the floor too.
-	private void SnapStandingNpc(BaseEntity entity)
+	internal void SnapStandingNpc(BaseEntity entity)
 	{
 		var navigator = GetNavigator(entity);
 		if (navigator == null || navigator.Moving)
@@ -767,6 +824,8 @@ public class HapisNPC
 		}
 	}
 
+	private const float ScientistPistolChance = 0.1f;
+
 	public void DressNPC(BasePlayer npc, NpcType npctype)
 	{
 		if (npc == null)
@@ -777,18 +836,7 @@ public class HapisNPC
 		{
 			case NpcType.Scientist:
 				CreateCloths(npc, "hazmatsuit_scientist");
-				switch ((int)UnityEngine.Random.Range(0f, 2f))
-				{
-					case 0:
-						CreateGun(npc, "rifle.lr300", "weapon.mod.flashlight");
-						break;
-					case 1:
-						CreateGun(npc, "rifle.ak", "weapon.mod.flashlight");
-						break;
-					case 2:
-						CreateGun(npc, "pistol.m92", "weapon.mod.flashlight");
-						break;
-				}
+				CreateGun(npc, UnityEngine.Random.value < ScientistPistolChance ? "pistol.m92" : "rifle.lr300", "weapon.mod.flashlight");
 				if (UnityEngine.Random.value < Config.ScientistGrenadeChance)
 				{
 					CreateGrenade(npc);
@@ -800,7 +848,7 @@ public class HapisNPC
 				break;
 			case NpcType.HeavyScientist:
 				CreateCloths(npc, "scientistsuit_heavy");
-				switch ((int)UnityEngine.Random.Range(0f, 2f))
+				switch (UnityEngine.Random.Range(0, 3))
 				{
 					case 0:
 						CreateGun(npc, "lmg.m249", "weapon.mod.flashlight");
@@ -828,7 +876,7 @@ public class HapisNPC
 				break;
 			case NpcType.Scarecrow:
 				CreateCloths(npc, "halloween.mummysuit");
-				switch ((int)UnityEngine.Random.Range(0f, 2f))
+				switch (UnityEngine.Random.Range(0, 3))
 				{
 					case 0:
 						CreateGun(npc, "pitchfork");
@@ -962,9 +1010,30 @@ public class HapisNPC
 		return false;
 	}
 
+	public static List<Vector3> SpawnerSpots()
+	{
+		var spots = new List<Vector3>();
+		var array = GetSerializedData("SerializedNPCData");
+		var data = array != null ? DeserializePlugin<SerializedNPCData>(array) : null;
+		if (data?.npcSpawners == null)
+		{
+			return spots;
+		}
+
+		foreach (var spawner in data.npcSpawners)
+		{
+			if (spawner != null)
+			{
+				spots.Add(spawner.position);
+			}
+		}
+
+		return spots;
+	}
+
 	private static byte[]? GetSerializedData(string dateName)
 	{
-		foreach (var map in World.Serialization.world.maps)
+		foreach (var map in MapBlocks.All)
 		{
 			try
 			{

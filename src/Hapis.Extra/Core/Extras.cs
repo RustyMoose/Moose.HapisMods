@@ -35,6 +35,7 @@ internal static class Extras
 		Log.Info("Water sources: " + (s.KeepWaterFull
 			? "full on start" + (s.WaterRefillHours > 0f ? ", then every " + s.WaterRefillHours + " h" : string.Empty)
 			: "off"));
+		CargoDocks.Report();
 
 		var ticker = new GameObject("HapisExtras.Ticker");
 		UnityEngine.Object.DontDestroyOnLoad(ticker);

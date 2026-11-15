@@ -40,6 +40,18 @@ public class NpcSpawner : MonoBehaviour
 
 	public Vector3 lostCheckPosition;
 
+	private const int FastNavmeshChecks = 30;
+
+	private const float FastNavmeshCheckSeconds = 4f;
+
+	private const float SlowNavmeshCheckSeconds = 15f;
+
+	private static System.Reflection.MethodInfo? _bindNavmesh;
+
+	private static bool _bindLooked;
+
+	private int _navmeshChecks;
+
 	private static readonly Dictionary<NpcType, string> TypeToPrefabMap = new()
 	{
 		{ NpcType.Scientist, "assets/rust.ai/agents/npcplayer/humannpc/scientist/scientistnpc_roamtethered.prefab" },
@@ -75,10 +87,44 @@ public class NpcSpawner : MonoBehaviour
 				return;
 			}
 
-			if (navigator.GetNearestNavmeshPosition(BOT.transform.position, out var found, 8f))
+			if (navigator.GetNearestNavmeshPosition(BOT.transform.position, out _, 8f))
 			{
 				stationary = false;
+				return;
 			}
+
+			Rebind(navigator);
+			if (navigator.GetNearestNavmeshPosition(BOT.transform.position, out _, 8f))
+			{
+				stationary = false;
+				return;
+			}
+
+			BOT.Invoke((System.Action)CheckRustNavmesh, ++_navmeshChecks < FastNavmeshChecks ? FastNavmeshCheckSeconds : SlowNavmeshCheckSeconds);
+		}
+		catch
+		{
+			// ignored
+		}
+	}
+
+	private static void Rebind(BaseNavigator navigator)
+	{
+		var agent = navigator.Agent;
+		if (agent == null)
+		{
+			return;
+		}
+
+		if (!_bindLooked)
+		{
+			_bindLooked = true;
+			_bindNavmesh = agent.GetType().GetMethod("TryBindNavmesh", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+		}
+
+		try
+		{
+			_bindNavmesh?.Invoke(agent, null);
 		}
 		catch
 		{
@@ -169,13 +215,10 @@ public class NpcSpawner : MonoBehaviour
 		}
 		// The check above uses Unity's navmesh, which Rust no longer uses, so it can wrongly mark NPCs as stationary.
 		// Ask Rust's own navmesh instead (now, and again shortly in case it wasn't ready yet).
+		_navmeshChecks = 0;
 		if (stationary && BOT != null)
 		{
 			CheckRustNavmesh();
-			if (stationary)
-			{
-				BOT.Invoke((System.Action)CheckRustNavmesh, 3f);
-			}
 		}
 
 		BasePlayer val5 = null;

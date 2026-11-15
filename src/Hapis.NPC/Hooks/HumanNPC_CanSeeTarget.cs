@@ -9,7 +9,10 @@ internal class HumanNPC_CanSeeTarget
 {
 	private const int Deployed = 8;
 	private const int Transparent = 24;
+	private const int Terrain = 23;
 	private const int ExtraBlockers = (1 << Deployed) | (1 << Transparent);
+	private const int Ground = 1 << Terrain;
+	private const float Underground = 1f;
 
 	[HarmonyPostfix]
 	private static void Postfix(HumanNPC __instance, BaseEntity __0, Vector3 __1, ref bool __result)
@@ -25,8 +28,7 @@ internal class HumanNPC_CanSeeTarget
 			var head = target.eyes != null ? target.eyes.position : target.transform.position + Vector3.up * 1.5f;
 			var chest = target.transform.position + Vector3.up * 1f;
 
-			if (Physics.Linecast(eyes, head, ExtraBlockers, QueryTriggerInteraction.Ignore)
-				&& Physics.Linecast(eyes, chest, ExtraBlockers, QueryTriggerInteraction.Ignore))
+			if (Blocked(eyes, head, chest, ExtraBlockers) || ((BelowGround(eyes) || BelowGround(head)) && Blocked(eyes, head, chest, Ground)))
 			{
 				__result = false;
 			}
@@ -35,5 +37,16 @@ internal class HumanNPC_CanSeeTarget
 		{
 			HapisLog.Once("NPC sight", e);
 		}
+	}
+
+	private static bool BelowGround(Vector3 spot)
+	{
+		return TerrainMeta.HeightMap != null && spot.y < TerrainMeta.HeightMap.GetHeight(spot) - Underground;
+	}
+
+	private static bool Blocked(Vector3 eyes, Vector3 head, Vector3 chest, int layers)
+	{
+		return Physics.Linecast(eyes, head, layers, QueryTriggerInteraction.Ignore)
+			&& Physics.Linecast(eyes, chest, layers, QueryTriggerInteraction.Ignore);
 	}
 }
